@@ -1,6 +1,0 @@
-addProduct:
-    handler: inventory/addProduct.handler
-    events:
-      - httpApi:
-          path: /product
-          method: post
