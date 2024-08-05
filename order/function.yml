@@ -1,0 +1,6 @@
+getAllOrders:
+    handler: order/handler.handler
+    events:
+      - httpApi:
+          path: /
+          method: get
