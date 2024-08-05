@@ -1,0 +1,12 @@
+getAllOrders:
+    handler: inventory/get-orders.handler
+    events:
+      - httpApi:
+          path: /order
+          method: get
+orderStats:
+    handler: inventory/order-stats.handler
+    events:
+      - httpApi:
+          path: /order/stats
+          method: get
