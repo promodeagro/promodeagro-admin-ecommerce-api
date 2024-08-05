@@ -30,4 +30,4 @@ provider:
     #     - DELETE
 
 functions:
-  - ${file(inventory/function.yml)}
+  - ${file(order/function.yml)}
