@@ -1,0 +1,20 @@
+addProduct:
+    handler: inventory/addProduct.handler
+    events:
+      - httpApi:
+          path: /product
+          method: post
+
+getAllProduct:
+    handler: inventory/getAllProducts.getAllInventory
+    events:
+      - httpApi:
+          path: /getAllProducts
+          method: get
+
+getProductStats:
+    handler: inventory/getProductStats.handler
+    events:
+      - httpApi:
+          path: /getProductStats
+          method: get
