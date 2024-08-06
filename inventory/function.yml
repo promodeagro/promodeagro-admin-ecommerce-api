@@ -3,4 +3,3 @@ getItemOverview:
     events:
       - httpApi:
           path: /items/{productId}
-          method: get
