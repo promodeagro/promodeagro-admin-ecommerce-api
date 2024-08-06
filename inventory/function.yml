@@ -18,3 +18,10 @@ getProductStats:
       - httpApi:
           path: /getProductStats
           method: get
+
+getItemOverview:
+    handler: inventory/getItemOverview.handler
+    events:
+      - httpApi:
+          path: /items/{productId}
+          method: get
