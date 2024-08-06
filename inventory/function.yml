@@ -12,27 +12,6 @@ getAllProduct:
           path: /getAllProducts
           method: get
 
-getLowStockProducts:
-    handler: inventory/getLowStockProducts.getLowStockProducts
-    events:
-      - httpApi:
-          path: /getLowStocksProducts
-          method: get
-
-getAvailabilityStocks:
-    handler: inventory/getAvailableStocks.getInStockProducts
-    events:
-      - httpApi:
-          path: /getAvailabilityStocks
-          method: get
-
-getExpireProducts:
-    handler: inventory/getExpireProducts.getExpiredProducts
-    events:
-      - httpApi:
-          path: /getExpireProducts
-          method: get
-
 getProductStats:
     handler: inventory/getProductStats.handler
     events:
