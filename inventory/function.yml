@@ -32,3 +32,10 @@ getExpireProducts:
       - httpApi:
           path: /getExpireProducts
           method: get
+
+getProductStats:
+    handler: inventory/getProductStats.handler
+    events:
+      - httpApi:
+          path: /getProductStats
+          method: get
