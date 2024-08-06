@@ -1,0 +1,6 @@
+getItemOverview:
+    handler: inventory/getItemOverview.handler
+    events:
+      - httpApi:
+          path: /items/{productId}
+          method: get

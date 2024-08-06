@@ -31,3 +31,4 @@ provider:
 
 functions:
   - ${file(order/function.yml)}
+  - ${file(inventory/function.yml)} 
