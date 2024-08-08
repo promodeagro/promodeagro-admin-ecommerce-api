@@ -25,3 +25,9 @@ getItemOverview:
       - httpApi:
           path: /items/{productId}
           method: get
+addInventory:
+    handler: inventory/add-inventory.handler
+    events:
+      - httpApi:
+          path: /inventory
+          method: post
