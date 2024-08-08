@@ -1,11 +1,7 @@
 require("dotenv").config();
-const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
-const { DynamoDBDocumentClient, PutCommand } = require("@aws-sdk/lib-dynamodb");
 const crypto = require("crypto");
+const { save } = require("../common/data");
 const z = require("zod");
-
-const client = new DynamoDBClient({});
-const docClient = DynamoDBDocumentClient.from(client);
 
 const inventoryItemSchema = z.object({
 	name: z.string(),
@@ -31,26 +27,24 @@ module.exports.handler = async (event) => {
 			body: JSON.stringify({ message: errorMessage }),
 		};
 	}
-	const itemCode = crypto.randomUUID().split("-")[0];
-	const params = {
-		TableName: process.env.INVENTORY_TABLE,
-		Item: {
-			itemCode,
-			name: req.name,
-			description: req.description,
-			category: req.category,
-			units: req.units,
-			purchasingPrice: Number(req.purchasingPrice),
-			msp: Number(req.msp),
-			stockQuantity: Number(req.stockQuantity),
-			expiry: req.expiry,
-			updatedAt: new Date().toISOString(),
-			images: req.images || [],
-		},
+	const uuid = crypto.randomUUID();
+	const itemCode = uuid.split("-")[0];
+	const item = {
+		id: uuid,
+		itemCode,
+		name: req.name,
+		description: req.description,
+		category: req.category,
+		units: req.units,
+		purchasingPrice: Number(req.purchasingPrice),
+		msp: Number(req.msp),
+		stockQuantity: Number(req.stockQuantity),
+		expiry: req.expiry,
+		updatedAt: new Date().toISOString(),
+		images: req.images || [],
 	};
-
 	try {
-		await docClient.send(new PutCommand(params));
+		await save(process.env.INVENTORY_TABLE, item);
 		return {
 			statusCode: 200,
 			body: JSON.stringify({ message: "Item added successfully" }),
