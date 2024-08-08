@@ -1,0 +1,6 @@
+addInventory:
+    handler: inventory/add-inventory.handler
+    events:
+      - httpApi:
+          path: /inventory
+          method: post
