@@ -45,7 +45,7 @@ module.exports.handler = async (event) => {
 		images: req.images || [],
 	};
 	try {
-		await save(process.env.INVENTORY_TABLE, item);
+		await save("Inventory", item);
 		return {
 			statusCode: 200,
 			body: JSON.stringify({ message: "Item added successfully" }),

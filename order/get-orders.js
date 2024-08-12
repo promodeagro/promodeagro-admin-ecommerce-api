@@ -4,7 +4,7 @@ const { findAll } = require("../common/data");
 module.exports.handler = async (event) => {
 	let nextKey = event.queryStringParameters?.pageKey || undefined;
 	try {
-		const data = await findAll(process.env.ORDER_TABLE, nextKey);
+		const data = await findAll("Orders", nextKey);
 
 		const res = data.items.map((item) => {
 			return {

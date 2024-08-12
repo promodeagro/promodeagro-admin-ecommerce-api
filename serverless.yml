@@ -22,23 +22,19 @@ provider:
   runtime: nodejs18.x
   role: arn:aws:iam::851725323791:role/ecommerce_Lambda_Role
   versionFunctions: false
-  # httpApi:   
-    # authorizers:
-    #   customAuthorizer:
-    #     type: request
-    #     functionName: authorizer
-    # cors:
-    #   allowedOrigins:
-    #     - "*"
-    #   allowedHeaders:
-    #     - "*"
-    #   allowedMethods:
-    #     - OPTIONS
-    #     - GET
-    #     - POST
-    #     - PUT
-    #     - DELETE
-
+  httpApi:
+    cors:
+      allowedOrigins:
+        - "*"
+      allowedHeaders:
+        - "*"
+      allowedMethods:
+        - OPTIONS
+        - GET
+        - POST
+        - PUT
+        - DELETE
+        
 functions:
   - ${file(order/function.yml)}
   - ${file(inventory/function.yml)}

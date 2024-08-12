@@ -15,8 +15,8 @@ module.exports.handler = async (event) => {
 	// };
 	// }
 	try {
-		data = await findById(process.env.INVENTORY_TABLE, id);
-		const res = await save(process.env.PRODUCT_TABLE, data);
+		data = await findById("Inventory", id);
+		const res = await save("Products", data);
 		return {
 			statusCode: 200,
 			body: JSON.stringify({ message: res }),

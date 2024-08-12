@@ -44,7 +44,7 @@ const scanProducts = async (filterFunction) => {
 
     do {
         const params = {
-            TableName: process.env.PRODUCTS_TABLE,
+            TableName: "Products",
             ExclusiveStartKey: lastEvaluatedKey,
         };
 

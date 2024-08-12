@@ -3,7 +3,7 @@ const { DynamoDBClient, ScanCommand } = require("@aws-sdk/client-dynamodb");
 
 const dynamoClient = new DynamoDBClient();
 
-const orderTable = process.env.ORDER_TABLE;
+const orderTable = "Orders";
 
 console.log("orderTab :", orderTable);
 

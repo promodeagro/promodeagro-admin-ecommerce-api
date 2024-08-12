@@ -31,7 +31,7 @@ module.exports.handler = async (event) => {
 	const { id, active } = req;
 
 	const params = {
-		TableName: process.env.INVENTORY_TABLE,
+		TableName: "Inventory",
 		Key: {
 			id: id,
 		},
