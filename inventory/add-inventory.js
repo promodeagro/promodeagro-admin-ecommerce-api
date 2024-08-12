@@ -38,6 +38,7 @@ module.exports.handler = async (event) => {
 		units: req.units,
 		purchasingPrice: Number(req.purchasingPrice),
 		msp: Number(req.msp),
+		active: false,
 		stockQuantity: Number(req.stockQuantity),
 		expiry: req.expiry,
 		updatedAt: new Date().toISOString(),

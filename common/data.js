@@ -3,13 +3,15 @@ const {
 	DynamoDBDocumentClient,
 	PutCommand,
 	ScanCommand,
+	GetCommand,
 } = require("@aws-sdk/lib-dynamodb");
-const { unmarshall } = require("@aws-sdk/util-dynamodb");
 
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
 
 async function save(tableName, item) {
+	const timestamp = new Date().toISOString();
+	item = { ...item, createdAt: timestamp, updatedAt: timestamp };
 	const params = {
 		TableName: tableName,
 		Item: item,
@@ -49,4 +51,15 @@ async function findAll(tableName, nextKey) {
 	}
 }
 
-module.exports = { save, findAll };
+async function findById(tableName, id) {
+	const params = {
+		TableName: tableName,
+		Key: {
+			id: id,
+		},
+	};
+	const result = await docClient.send(new GetCommand(params));
+	return result.Item;
+}
+
+module.exports = { save, findAll, findById };

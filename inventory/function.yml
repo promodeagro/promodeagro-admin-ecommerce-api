@@ -31,3 +31,18 @@ add-inventory:
       - httpApi:
           path: /inventory
           method: post
+publish-item:
+    handler: inventory/publish-item.handler
+    events:
+      - httpApi:
+          path: /publish/{id}
+          method: put
+update-item-status:
+    handler: inventory/update-item-status.handler
+    events:
+      - httpApi:
+          path: /inventory/status
+          method: put
+
+
+          
