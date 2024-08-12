@@ -2,8 +2,18 @@ service: promodeAgro-admin-ecommerce-api
 
 frameworkVersion: "3"
 
+useDotenv: true
+
 plugins:
   - serverless-offline
+  - serverless-esbuild
+
+
+custom:
+  stage: ${opt:stage, 'dev'}
+  esbuild:
+    bundle: true
+    minify: false
 
 provider:
   name: aws

@@ -3,6 +3,10 @@ const { DynamoDBClient, ScanCommand } = require("@aws-sdk/client-dynamodb");
 
 const dynamoClient = new DynamoDBClient();
 
+const orderTable = process.env.ORDER_TABLE;
+
+console.log("orderTab :", orderTable);
+
 module.exports.handler = async (event) => {
 	const fallbackValue = -1;
 	const [
@@ -33,7 +37,7 @@ const totalOrders = async () => {
 
 	do {
 		const params = {
-			TableName: process.env.ORDER_TABLE,
+			TableName: orderTable,
 			Select: "COUNT",
 			ExclusiveStartKey: lastEvaluatedKey,
 		};
@@ -59,7 +63,7 @@ const orderStatsByStatus = async (status) => {
 
 	do {
 		const params = {
-			TableName: process.env.ORDER_TABLE,
+			TableName: orderTable,
 			Select: "COUNT",
 			FilterExpression: "#status = :statusValue",
 			ExpressionAttributeNames: {

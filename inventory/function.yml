@@ -1,10 +1,3 @@
-addProduct:
-    handler: inventory/addProduct.handler
-    events:
-      - httpApi:
-          path: /product
-          method: post
-
 get-items:
     handler: inventory/get-items.handler
     events:
@@ -26,7 +19,7 @@ getItemOverview:
           path: /items/{productId}
           method: get
 add-inventory:
-    handler: inventory/add-inventory.handler
+    handler: inventory/add-item.handler
     events:
       - httpApi:
           path: /inventory

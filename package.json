@@ -1,11 +1,14 @@
 {
 	"devDependencies": {
+		"esbuild": "^0.23.0",
+		"serverless-esbuild": "^1.52.1",
 		"serverless-offline": "^13.3.3"
 	},
 	"dependencies": {
 		"@aws-sdk/client-dynamodb": "^3.623.0",
 		"@aws-sdk/lib-dynamodb": "^3.623.0",
 		"@aws-sdk/util-dynamodb": "^3.623.0",
+		"dotenv": "^16.4.5",
 		"zod": "^3.23.8"
 	}
 }
