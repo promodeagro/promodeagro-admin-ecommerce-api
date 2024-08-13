@@ -1,7 +1,12 @@
 require("dotenv").config();
-const { DynamoDBClient, ScanCommand } = require("@aws-sdk/client-dynamodb");
+const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
+const {
+	DynamoDBDocumentClient,
+	ScanCommand,
+} = require("@aws-sdk/lib-dynamodb");
 
-const dynamoClient = new DynamoDBClient();
+const dynamoClient = new DynamoDBClient({});
+const docClient = DynamoDBDocumentClient.from(dynamoClient);
 
 const orderTable = "Orders";
 
@@ -34,7 +39,7 @@ module.exports.handler = async (event) => {
 
 const totalOrders = async () => {
 	let itemCount = 0;
-	let lastEvaluatedKey = null;
+	let lastEvaluatedKey = undefined;
 
 	do {
 		const params = {
@@ -45,7 +50,7 @@ const totalOrders = async () => {
 
 		try {
 			const command = new ScanCommand(params);
-			const data = await dynamoClient.send(command);
+			const data = await docClient.send(command);
 
 			itemCount += data.Count;
 			lastEvaluatedKey = data.LastEvaluatedKey;
@@ -60,7 +65,7 @@ const totalOrders = async () => {
 
 const orderStatsByStatus = async (status) => {
 	let itemCount = 0;
-	let lastEvaluatedKey = null;
+	let lastEvaluatedKey = undefined;
 
 	do {
 		const params = {
@@ -71,14 +76,14 @@ const orderStatsByStatus = async (status) => {
 				"#status": "status",
 			},
 			ExpressionAttributeValues: {
-				":statusValue": { S: status },
+				":statusValue": status,
 			},
 			ExclusiveStartKey: lastEvaluatedKey,
 		};
 
 		try {
 			const command = new ScanCommand(params);
-			const data = await dynamoClient.send(command);
+			const data = await docClient.send(command);
 
 			itemCount += data.Count;
 			lastEvaluatedKey = data.LastEvaluatedKey;
