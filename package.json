@@ -1,4 +1,8 @@
 {
+	"scripts": {
+		"prod" :"serverless deploy --stage prod",
+		"dev" : "serverless offline"
+	},
 	"devDependencies": {
 		"esbuild": "^0.20.0",
 		"serverless-esbuild": "^1.52.1",
