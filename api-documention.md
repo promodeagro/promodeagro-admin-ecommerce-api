@@ -299,6 +299,15 @@ The request body should be a JSON object with the following fields:
 - **URL**: `https://wj7wzozdcc.execute-api.us-east-1.amazonaws.com/inventory`
 
 
+## API Endpoint: Get Inventory by product id
+
+### Method
+- **Method**: GET
+
+### URL
+- **URL**: `https://wj7wzozdcc.execute-api.us-east-1.amazonaws.com/inventory/{id}`
+
+
 
 ## API Endpoint: Update Inventory status
 
@@ -335,6 +344,16 @@ The request body should be a JSON object with the following fields:
 
 ### URL
 - **URL**: `https://wj7wzozdcc.execute-api.us-east-1.amazonaws.com/order`
+
+
+### API Endpoint: Get order by id
+
+### Method
+### Method
+- **Method**: GET
+
+### URL
+- **URL**: `https://wj7wzozdcc.execute-api.us-east-1.amazonaws.com/order/{id}`
 
 
 ### API Endpoint: Get order stats
