@@ -1,0 +1,20 @@
+getSalesCount:
+    handler: dashboard/getSalesCount.handler
+    events:
+      - httpApi:
+          path: /getSalesCount
+          method: get
+
+recentOrders:
+    handler: dashboard/recentOrders.handler
+    events:
+      - httpApi:
+          path: /recentOrders
+          method: get
+          
+refundOrders:
+    handler: dashboard/refundOrders.handler
+    events:
+      - httpApi:
+          path: /refundOrders
+          method: get

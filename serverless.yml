@@ -38,3 +38,4 @@ provider:
 functions:
   - ${file(order/function.yml)}
   - ${file(inventory/function.yml)}
+  - ${file(dashboard/function.yml)}
