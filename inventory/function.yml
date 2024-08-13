@@ -4,7 +4,12 @@ get-items:
       - httpApi:
           path: /inventory
           method: get
-
+get-item:
+    handler: inventory/get-item.handler
+    events:
+      - httpApi:
+          path: /inventory/{id}
+          method: get
 getProductStats:
     handler: inventory/getProductStats.handler
     events:
