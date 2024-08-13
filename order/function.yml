@@ -4,6 +4,12 @@ getAllOrders:
       - httpApi:
           path: /order
           method: get
+getOrderById:
+    handler: order/get-order.handler
+    events:
+      - httpApi:
+          path: /order/{id}
+          method: get
 orderStats:
     handler: order/order-stats.handler
     events:
