@@ -285,10 +285,8 @@ The request body should be a JSON object with the following fields:
 	"msp": 19.99,
 	"stockQuantity": 100,
 	"expiry": "2024-12-31T23:59:59Z",
-	"images": "https://example.com/images/almonds.jpg"
+	"images": ["https://example.com/images/almonds.jpg"]
 }
-
-
 
 ```
 

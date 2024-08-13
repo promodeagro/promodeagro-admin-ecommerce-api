@@ -10,11 +10,11 @@ get-item:
       - httpApi:
           path: /inventory/{id}
           method: get
-getProductStats:
-    handler: inventory/getProductStats.handler
+inventory-stats:
+    handler: inventory/inventory-stats.handler
     events:
       - httpApi:
-          path: /getProductStats
+          path: /inventory/stats
           method: get
 
 getItemOverview:

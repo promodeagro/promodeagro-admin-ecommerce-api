@@ -8,7 +8,7 @@ const orderTable = "Orders";
 console.log("orderTab :", orderTable);
 
 module.exports.handler = async (event) => {
-	const fallbackValue = -1;
+	const fallbackValue = 0;
 	const [
 		totalOrderCount,
 		completedOrderCount,
@@ -25,6 +25,7 @@ module.exports.handler = async (event) => {
 		body: JSON.stringify({
 			totalOrderCount: totalOrderCount,
 			completedOrderCount: completedOrderCount,
+			confirmedOrderCount: 0, //--TODO--
 			cancelledOrderCount: cancelledOrderCount,
 			refundedOrderCount: refundedOrderCount,
 		}),
