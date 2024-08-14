@@ -1,21 +1,53 @@
-require('dotenv').config();
-const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
-const { DynamoDBDocumentClient, ScanCommand } = require('@aws-sdk/lib-dynamodb');
+require("dotenv").config();
+const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
+const {
+  DynamoDBDocumentClient,
+  ScanCommand,
+} = require("@aws-sdk/lib-dynamodb");
 
 // Initialize DynamoDB client
-const client = new DynamoDBClient({ region: process.env.REGION || 'us-east-1' });
+const client = new DynamoDBClient({
+  region: process.env.REGION || "us-east-1",
+});
 const docClient = DynamoDBDocumentClient.from(client);
 
 module.exports.handler = async (event) => {
   try {
-    const today = new Date().toISOString().split('T')[0];
+    const queryParams = event.queryStringParameters || {};
+    const today = new Date().toISOString().split("T")[0];
+    const startDate = queryParams.startDate || today;
+    const endDate = queryParams.endDate || today;
+
+    const startOfDay = new Date(startDate);
+    startOfDay.setUTCHours(0, 0, 0, 0);
+    const endOfDay = new Date(endDate);
+    endOfDay.setUTCHours(23, 59, 59, 999);
+
+    const startOfDayISO = startOfDay.toISOString();
+    const endOfDayISO = endOfDay.toISOString();
+
+    const productsParams = {
+      TableName: process.env.PRODUCT_TABLE || "Products",
+      FilterExpression: "#createdAt BETWEEN :startOfDay AND :endOfDay",
+      ExpressionAttributeNames: {
+        "#createdAt": "createdAt",
+      },
+      ExpressionAttributeValues: {
+        ":startOfDay": startOfDayISO,
+        ":endOfDay": endOfDayISO,
+      },
+    };
+    const productsData = await docClient.send(new ScanCommand(productsParams));
+    const totalPurchase = productsData.Items.reduce((sum, item) => {
+      return sum + (item.purchasingPrice || 0);
+    }, 0);
 
     // Fetch today's sales data
     const salesParams = {
-      TableName: process.env.SALES_TABLE || 'sales',
-      FilterExpression: 'begins_with(SaleTimestamp, :today)',
+      TableName: process.env.SALES_TABLE || "sales",
+      FilterExpression: "begins_with(SaleTimestamp, :today)",
       ExpressionAttributeValues: {
-        ':today': today,
+        ":today": today,
       },
     };
     const salesData = await docClient.send(new ScanCommand(salesParams));
@@ -23,31 +55,32 @@ module.exports.handler = async (event) => {
 
     // Fetch today's orders data with statuses
     const ordersParams = {
-      TableName: process.env.ORDERS_TABLE || 'Orders',
-      FilterExpression: '#status IN (:canceled, :refunded) AND begins_with(createdAt, :today)',
+      TableName: process.env.ORDERS_TABLE || "Orders",
+      FilterExpression: "#createdAt BETWEEN :startOfDay AND :endOfDay",
       ExpressionAttributeNames: {
-        '#status': 'status',
+        "#createdAt": "createdAt",
       },
       ExpressionAttributeValues: {
-        ':canceled': 'Order Canceled',
-        ':refunded': 'Order Refunded',
-        ':today': today,
+        ":startOfDay": startOfDayISO,
+        ":endOfDay": endOfDayISO,
       },
     };
-
     const ordersData = await docClient.send(new ScanCommand(ordersParams));
-    const totalOrders = ordersData.Count;
-    const totalCanceled = ordersData.Items.filter(item => item.status === 'Order Canceled').length;
-    const totalRefunded = ordersData.Items.filter(item => item.status === 'Order Refunded').length;
+    const totalOrders = ordersData.Items.length;
+    const totalCanceled = ordersData.Items.filter(
+      (item) => item.status === "Order Canceled"
+    ).length;
+    const totalRefunded = ordersData.Items.filter(
+      (item) => item.status === "Order Refunded"
+    ).length;
 
-    // Create the response data
     const response = {
-        todaySales: totalSales,
-        todayProcurement: '',
-        todayOrders: totalOrders,
-        orderCanceled: totalCanceled,
-        orderRefunded: totalRefunded,
-        bestSellingProduct: '', 
+      todaySales: totalSales,
+      todayProcurement: totalPurchase,
+      todayOrders: totalOrders,
+      orderCanceled: totalCanceled,
+      orderRefunded: totalRefunded,
+      // bestSellingProduct: '',
     };
 
     return {
@@ -55,10 +88,10 @@ module.exports.handler = async (event) => {
       body: JSON.stringify(response),
     };
   } catch (error) {
-    console.error('Error fetching data from DynamoDB:', error);
+    console.error("Error fetching data from DynamoDB:", error);
     return {
       statusCode: 500,
-      body: JSON.stringify({ message: 'Failed to fetch data' }),
+      body: JSON.stringify({ message: "Failed to fetch data" }),
     };
   }
 };

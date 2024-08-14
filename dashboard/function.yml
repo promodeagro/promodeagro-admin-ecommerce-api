@@ -18,3 +18,10 @@ refundOrders:
       - httpApi:
           path: /refundOrders
           method: get
+
+bestSellingProducts:
+    handler: dashboard/bestSellingProducts.handler
+    events:
+      - httpApi:
+          path: /bestSellingProducts
+          method: get
