@@ -14,9 +14,9 @@ const docClient = DynamoDBDocumentClient.from(client);
 module.exports.handler = async (event) => {
   try {
     const queryParams = event.queryStringParameters || {};
-    const today = new Date().toISOString().split("T")[0];
-    const startDate = queryParams.startDate || today;
-    const endDate = queryParams.endDate || today;
+    const date = queryParams.date || new Date().toISOString().split('T')[0];
+    const startDate = queryParams.startDate || date;
+    const endDate = queryParams.endDate || date;
 
     const startOfDay = new Date(startDate);
     startOfDay.setUTCHours(0, 0, 0, 0);

@@ -24,14 +24,17 @@ module.exports.handler = async (event) => {
 
     // Fetch orders for the specified date range
     const ordersParams = {
-      TableName: process.env.ORDERS_TABLE || 'Orders',
-      FilterExpression: '#createdAt BETWEEN :startOfDay AND :endOfDay',
+      TableName: process.env.ORDERS_TABLE || "Orders",
+      FilterExpression:
+        "#createdAt BETWEEN :startOfDay AND :endOfDay AND #status = :status",
       ExpressionAttributeNames: {
-        '#createdAt': 'createdAt',
+        "#createdAt": "createdAt",
+        "#status": "status",
       },
       ExpressionAttributeValues: {
-        ':startOfDay': startOfDayISO,
-        ':endOfDay': endOfDayISO,
+        ":startOfDay": startOfDayISO,
+        ":endOfDay": endOfDayISO,
+        ":status": "Order Refunded",
       },
     };
 
@@ -40,7 +43,7 @@ module.exports.handler = async (event) => {
     if (ordersData.Items.length === 0) {
       return {
         statusCode: 200,
-        body: JSON.stringify({ message: `No orders found between ${startDate} and ${endDate}` }),
+        body: JSON.stringify({ message: `No refunded orders found between ${startDate} and ${endDate}`}),
       };
     }
 

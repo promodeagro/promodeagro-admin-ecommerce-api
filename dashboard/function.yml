@@ -25,3 +25,10 @@ bestSellingProducts:
       - httpApi:
           path: /bestSellingProducts
           method: get
+
+salesReports:
+    handler: dashboard/salesReports.handler
+    events:
+      - httpApi:
+          path: /salesReports
+          method: get
