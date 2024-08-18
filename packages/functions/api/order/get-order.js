@@ -15,7 +15,6 @@ export const handler = async (event) => {
 		};
 	}
 	try {
-		console.log("1");
 		const orderData = await findById(Config.ORDER_TABLE, id);
 		const params = {
 			TableName: Config.USERS_TABLE,
@@ -25,6 +24,7 @@ export const handler = async (event) => {
 		};
 		const userRes = await docClient.send(new GetCommand(params));
 		const userData = userRes.Item;
+		//TODO for product category in items
 		const response = {
 			orderId: orderData.id,
 			status: orderData.status,

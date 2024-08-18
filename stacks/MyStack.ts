@@ -10,7 +10,7 @@ export function API({ stack }: StackContext) {
 	const mediaBucket = new Bucket(stack, "mediaBucket", {
 		cors: [
 			{
-				allowedOrigins: ["localhost:3000"],
+				allowedOrigins: ["*"],
 				allowedHeaders: ["*"],
 				allowedMethods: ["GET", "PUT", "POST"],
 			},
@@ -158,7 +158,7 @@ export function API({ stack }: StackContext) {
 					bind: [ORDER_TABLE],
 				},
 			},
-			"GET /order/{id}/proceed": {
+			"PUT /order/{id}/proceed": {
 				function: {
 					handler:
 						"packages/functions/api/order/proceed-order.handler",

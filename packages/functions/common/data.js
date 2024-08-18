@@ -5,6 +5,7 @@ import {
 	ScanCommand,
 	GetCommand,
 	UpdateCommand,
+	QueryCommand,
 } from "@aws-sdk/lib-dynamodb";
 
 const client = new DynamoDBClient({});
@@ -95,6 +96,31 @@ export async function update(tableName, key, updateData) {
 		return response.Attributes;
 	} catch (error) {
 		console.error("Error updating item:", error);
+		throw error;
+	}
+}
+
+export async function productExistsByName(tableName, productName) {
+	const params = {
+		TableName: tableName,
+		FilterExpression: "#name = :name",
+		ExpressionAttributeNames: {
+			"#name": "name",
+		},
+		ExpressionAttributeValues: {
+			":name": productName,
+		},
+		Limit: 1, // We only need to know if at least one item exists
+	};
+
+	try {
+		console.log(JSON.stringify(productName));
+		const command = new ScanCommand(params);
+		const response = await docClient.send(command);
+		console.log(JSON.stringify(response));
+		return !!response.Items && response.Items.length > 0;
+	} catch (error) {
+		console.error("Error scanning DynamoDB:", error);
 		throw error;
 	}
 }

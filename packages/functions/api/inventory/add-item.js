@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { save } from "../../common/data";
+import { save, productExistsByName } from "../../common/data";
 import z from "zod";
 import { Config } from "sst/node/config";
 
@@ -30,8 +30,10 @@ export const handler = async (event) => {
 			body: JSON.stringify({ message: errorMessage }),
 		};
 	}
+	const exists = await productExistsByName(Config.INVENTORY_TABLE, req.name);
+	console.log("exists :", exists);
 	const uuid = crypto.randomUUID();
-	const itemCode = uuid.split("-")[0];
+	const itemCode = uuid.split("-")[0].toUpperCase();
 	const item = {
 		id: uuid,
 		itemCode,
@@ -48,7 +50,7 @@ export const handler = async (event) => {
 		images: req.images || [],
 	};
 	try {
-		await save(Config.INVENTORY_TABLE, item);
+		// await save(Config.INVENTORY_TABLE, item);
 		return {
 			statusCode: 200,
 			body: JSON.stringify({ message: "Item added successfully" }),

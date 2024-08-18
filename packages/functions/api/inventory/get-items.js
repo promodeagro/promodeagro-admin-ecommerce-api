@@ -10,7 +10,7 @@ export const handler = async (event) => {
 			body: JSON.stringify({
 				count: data.count,
 				items: data.items,
-				nextKey: nextKey,
+				nextKey: data.nextKey,
 			}),
 		};
 	} catch (error) {
