@@ -23,9 +23,8 @@ export const SFStack = ({ stack }: StackContext) => {
 			integrationPattern: sfn.IntegrationPattern.WAIT_FOR_TASK_TOKEN,
 			retryOnServiceExceptions: true,
 			payload: sfn.TaskInput.fromObject({
-				body: sfn.JsonPath.executionInput,
+				body: sfn.JsonPath.stringAt("$"),
 				token: sfn.JsonPath.taskToken,
-
 				stateName: sfn.JsonPath.stringAt("$$.State.Name"),
 			}),
 		})
@@ -38,7 +37,7 @@ export const SFStack = ({ stack }: StackContext) => {
 				// payloadResponseOnly: true,
 				retryOnServiceExceptions: true,
 				payload: sfn.TaskInput.fromObject({
-					body: sfn.JsonPath.executionInput,
+					body: sfn.JsonPath.stringAt("$"),
 					token: sfn.JsonPath.taskToken,
 
 					stateName: sfn.JsonPath.stringAt("$$.State.Name"),
@@ -53,7 +52,7 @@ export const SFStack = ({ stack }: StackContext) => {
 				// payloadResponseOnly: true,
 				retryOnServiceExceptions: true,
 				payload: sfn.TaskInput.fromObject({
-					body: sfn.JsonPath.executionInput,
+					body: sfn.JsonPath.stringAt("$"),
 					token: sfn.JsonPath.taskToken,
 
 					stateName: sfn.JsonPath.stringAt("$$.State.Name"),
@@ -64,13 +63,11 @@ export const SFStack = ({ stack }: StackContext) => {
 			new tasks.LambdaInvoke(stack, "Delivered", {
 				lambdaFunction: orderPlacedFn,
 				resultPath: "$",
-				integrationPattern: sfn.IntegrationPattern.WAIT_FOR_TASK_TOKEN,
+				integrationPattern: sfn.IntegrationPattern.REQUEST_RESPONSE,
 				// payloadResponseOnly: true,
 				retryOnServiceExceptions: true,
 				payload: sfn.TaskInput.fromObject({
-					body: sfn.JsonPath.executionInput,
-					token: sfn.JsonPath.taskToken,
-
+					body: sfn.JsonPath.stringAt("$"),
 					stateName: sfn.JsonPath.stringAt("$$.State.Name"),
 				}),
 			})

@@ -40,6 +40,7 @@ export const handler = async (event) => {
 			},
 			items: orderData.items,
 			createdAt: orderData.createdAt,
+			assignedTo : orderData.assigned || undefined
 		};
 		return {
 			statusCode: 200,

@@ -6,6 +6,7 @@ const stepFunctionClient = new SFNClient({ region: "us-east-1" });
 
 export const handler = async (event) => {
 	const orderId = event.pathParameters.id;
+	const assignedTo = event.queryStringParameters?.assigneed || undefined;
 
 	try {
 		const response = await findById(Config.ORDER_TABLE, orderId);
@@ -15,8 +16,14 @@ export const handler = async (event) => {
 				body: JSON.stringify({ message: "Order not found" }),
 			};
 		}
+		if (response.status !== "packed" && assignedTo != undefined) {
+			return {
+				statusCode: 400,
+				body: JSON.stringify({ message: "cannot assign order" }),
+			};
+		}
 		const input = {
-			output: JSON.stringify(response),
+			output: JSON.stringify({ ...response, assignedTo }),
 			taskToken: response.taskToken,
 		};
 		const tokenCommand = new SendTaskSuccessCommand(input);
@@ -24,7 +31,7 @@ export const handler = async (event) => {
 
 		return {
 			statusCode: 200,
-			body: JSON.stringify({ message: respone }),
+			body: JSON.stringify({ message: "success" }),
 		};
 	} catch (error) {
 		console.error("Error:", error);
