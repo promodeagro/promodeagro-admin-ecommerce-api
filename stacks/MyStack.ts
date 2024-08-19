@@ -158,7 +158,7 @@ export function API({ stack }: StackContext) {
 					bind: [ORDER_TABLE],
 				},
 			},
-			"PUT /order/{id}/proceed": {
+			"PUT /order/proceed": {
 				function: {
 					handler:
 						"packages/functions/api/order/proceed-order.handler",
