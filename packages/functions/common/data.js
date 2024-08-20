@@ -29,7 +29,7 @@ export async function findAll(tableName, nextKey) {
 	try {
 		const params = {
 			TableName: tableName,
-			Limit: 10,
+			Limit: 50,
 			ExclusiveStartKey: nextKey
 				? {
 						id: { S: nextKey },
