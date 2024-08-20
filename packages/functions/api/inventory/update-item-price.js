@@ -2,10 +2,14 @@ import z from "zod";
 import { update } from "../../common/data";
 import { Config } from "sst/node/config";
 
-const reqSchmea = z.object({
-	compareAt: z.number().positive(),
-	onlineStorePrice: z.number().positive(),
-});
+const reqSchmea = z
+	.object({
+		compareAt: z.number().positive(),
+		onlineStorePrice: z.number().positive(),
+	})
+	.refine((ob) => ob.compareAt > ob.onlineStorePrice, {
+		message: "compareAt must be greater than onlineStorePrice",
+	});
 
 export const handler = async (event) => {
 	const id = event.pathParameters.id;
