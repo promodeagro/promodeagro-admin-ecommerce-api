@@ -4,9 +4,6 @@ import { Cognito, StackContext } from "sst/constructs";
 export function AuthStack({ stack }: StackContext) {
 	const cognito = new Cognito(stack, "Auth", {
 		login: ["email"],
-		triggers: {
-			preSignUp: "packages/functions/api/auth/auth.preSignUp",
-		},
 		cdk: {
 			userPool: {
 				customAttributes: {

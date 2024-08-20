@@ -1,12 +1,8 @@
 import * as iam from "aws-cdk-lib/aws-iam";
-import { StackContext, Api, Config } from "sst/constructs";
+import { Bucket, Table, StackContext, Api, Config, use } from "sst/constructs";
 import { AuthStack } from "./AuthStack";
-import { UserPool } from "aws-cdk-lib/aws-cognito";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
-import { Bucket } from "sst/constructs";
-
 export function API({ stack }: StackContext) {
-	// const cognito = use(AuthStack);
 	const mediaBucket = new Bucket(stack, "mediaBucket", {
 		cors: [
 			{
@@ -54,7 +50,22 @@ export function API({ stack }: StackContext) {
 	const USERS_TABLE = new Config.Parameter(stack, "USERS_TABLE", {
 		value: usersTable.tableName,
 	});
-	const tables = [];
+
+	const cognito = use(AuthStack);
+
+	const adminUsersTable = new Table(stack, "adminUsersTable", {
+		fields: {
+			id: "string",
+			email: "string",
+			name: "string",
+			role: "string",
+		},
+		primaryIndex: { partitionKey: "id" },
+		globalIndexes: {
+			byEmail: { partitionKey: "email" },
+		},
+	});
+	const tables = [adminUsersTable];
 
 	const api = new Api(stack, "api", {
 		// authorizers: {
@@ -68,20 +79,35 @@ export function API({ stack }: StackContext) {
 		// },
 		defaults: {
 			function: {
-				bind: [],
+				bind: tables,
 			},
 			// authorizer: "UserPoolAuthorizer",
 		},
 		routes: {
-			// "POST /auth": {
-			// 	authorizer: "none",
-			// 	function: {
-			// 		handler: "packages/functions/api/auth/auth.signIn",
-			// 		environment: {
-			// 			COGNITO_CLIENT: cognito.userPoolClientId,
-			// 		},
-			// 	},
-			// },
+			"POST /auth/signup": {
+				authorizer: "none",
+				function: {
+					handler: "packages/functions/api/auth/auth.signup",
+					environment: {
+						USER_POOL_ID: cognito.userPoolId,
+						COGNITO_CLIENT: cognito.userPoolClientId,
+					},
+					permissions: ["cognito-idp:AdminConfirmSignUp"],
+				},
+			},
+			"POST /auth/signin": {
+				authorizer: "none",
+				function: {
+					handler: "packages/functions/api/auth/auth.signin",
+					environment: {
+						USER_POOL_ID: cognito.userPoolId,
+						COGNITO_CLIENT: cognito.userPoolClientId,
+					},
+					permissions: [],
+					// 	COGNITO_CLIENT: cognito.userPoolClientId,
+					// },
+				},
+			},
 			"GET /inventory": {
 				function: {
 					handler:
