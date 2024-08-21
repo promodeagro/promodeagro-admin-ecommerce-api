@@ -20,7 +20,7 @@ export const handler = async (event) => {
 			taskToken: event.token || null,
 			assigned: event.body.assignedTo || null,
 		};
-		const result = update(
+		const result = await update(
 			Config.ORDER_TABLE,
 			{
 				id: id,
