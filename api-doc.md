@@ -95,6 +95,84 @@ This document provides detailed information about the available API endpoints, i
   - `id` (string): The ID of the order.
 - **Query Parameters:** None
 
+### POST /auth/signin
+
+* **HTTP Verb:** POST
+
+* **Route:** `/auth/signin`
+
+* **Description:** Authenticates a user and returns an access token and refresh token.
+
+* **Request Body:**
+
+    ```json
+    {
+        "email": "user@example.com",
+        "password": "userpassword"
+    }
+    ```
+
+* **Response:**
+
+    ```json
+    {
+        "accessToken": "access-token-string",
+        "refreshToken": "refresh-token-string"
+    }
+    ```
+
+### POST /auth/forgot-password
+
+* **HTTP Verb:** POST
+
+* **Route:** `/auth/forgot-password`
+
+* **Description:** Initiates the password reset process for a user.
+
+* **Request Body:**
+
+    ```json
+    {
+        "email": "user@example.com"
+    }
+    ```
+
+* **Response:**
+
+    ```json
+    {
+        "message": "Password reset instructions have been sent to your email."
+    }
+    ```
+
+
+### POST /auth/reset-password
+
+* **HTTP Verb:** POST
+
+* **Route:** `/auth/reset-password`
+
+* **Description:** Resets the password for a user using a confirmation code.
+
+* **Request Body:**
+
+    ```json
+    {
+        "email": "user@example.com",
+        "confirmationCode": "confirmation-code-string",
+        "newPassword": "newuserpassword"
+    }
+    ```
+
+* **Response:**
+
+    ```json
+    {
+        "message": "Your password has been reset successfully."
+    }
+    ```
+
+
 ## Notes
 - All endpoints are secured and require appropriate permissions.
 - Ensure to handle errors and exceptions as per the organization's best practices.
