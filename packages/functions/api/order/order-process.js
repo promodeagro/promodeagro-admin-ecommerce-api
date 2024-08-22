@@ -14,12 +14,17 @@ export const handler = async (event) => {
 	} else if (state === "Delivered") {
 		orderStatus = "delivered";
 	}
+	const updateAttr = {
+		status: orderStatus,
+	};
+
+	if (event.token !== undefined) {
+		updateAttr.taskToken = event.token;
+	}
+	if (event.body.assignedTo !== undefined) {
+		updateAttr.assigned = event.body.assignedTo;
+	}
 	try {
-		const updateAttr = {
-			status: orderStatus,
-			taskToken: event.token || null,
-			assigned: event.body.assignedTo || null,
-		};
 		const result = await update(
 			Config.ORDER_TABLE,
 			{

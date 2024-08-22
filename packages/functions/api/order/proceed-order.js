@@ -10,38 +10,7 @@ export const handler = async (event) => {
 	const idArr = orderIds.split(",");
 
 	try {
-		if (idArr.length === 1) {
-			console.log("1");
-			const response = await findById(Config.ORDER_TABLE, idArr[0]);
-			if (!response) {
-				return {
-					statusCode: 400,
-					body: JSON.stringify({ message: "order not found" }),
-				};
-			}
-			if (response.status === "packed" && assignedTo === undefined) {
-				return {
-					statusCode: 400,
-					body: JSON.stringify({ message: "assignee not provided" }),
-				};
-			}
-			if (response.status !== "packed" && assignedTo !== undefined) {
-				return {
-					statusCode: 400,
-					body: JSON.stringify({ message: "cannot assign order" }),
-				};
-			}
-			const input = {
-				output: JSON.stringify({ ...response, assignedTo }),
-				taskToken: response.taskToken,
-			};
-			const tokenCommand = new SendTaskSuccessCommand(input);
-			await stepFunctionClient.send(tokenCommand);
-		} else {
-			await Promise.all(
-				idArr.map((orderId) => processOrder(orderId, assignedTo))
-			);
-		}
+		await Promise.all(idArr.map(orderId => processOrder(orderId, assignedTo)));
 		return {
 			statusCode: 200,
 			body: JSON.stringify({ message: "success" }),
@@ -50,7 +19,7 @@ export const handler = async (event) => {
 		console.error("Error:", error);
 		return {
 			statusCode: 500,
-			body: JSON.stringify({ message: "Internal server error" }),
+			body: JSON.stringify({ message: error.message }),
 		};
 	}
 };
@@ -59,23 +28,17 @@ const processOrder = async (orderId, assignedTo) => {
 	try {
 		const response = await findById(Config.ORDER_TABLE, orderId);
 		if (!response) {
-			console.log(`Order not found: ${orderId}`);
-			return;
-		}
-		if (response.status !== "packed" && assignedTo != undefined) {
-			return {
-				statusCode: 400,
-				body: JSON.stringify({ message: "cannot assign order" }),
-			};
-		}
-		if (response.status === "packed" && assignedTo != undefined) {
-			return {
-				statusCode: 400,
-				body: JSON.stringify({ message: "assignee not provided" }),
-			};
+			throw new Error(`Order not found: ${orderId}`);
 		}
 
-		// We're not checking the status here, processing regardless
+		if (response.status === "packed" && !assignedTo) {
+			throw new Error(`Assignee not provided for packed order: ${orderId}`);
+		}
+
+		if (response.status !== "packed" && assignedTo) {
+			throw new Error(`Cannot assign order that is not packed: ${orderId}`);
+		}
+
 		const input = {
 			output: JSON.stringify({ ...response, assignedTo }),
 			taskToken: response.taskToken,
@@ -86,6 +49,6 @@ const processOrder = async (orderId, assignedTo) => {
 		console.log(`Processed order: ${orderId}`);
 	} catch (error) {
 		console.error(`Error processing order ${orderId}:`, error);
-		// We're not rethrowing the error, just logging it
+		throw error; // Re-throw the error to ensure it is caught by Promise.all
 	}
 };
