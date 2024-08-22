@@ -19,6 +19,7 @@ export function AuthStack({ stack }: StackContext) {
 			userPoolClient: {
 				authFlows: {
 					userPassword: true,
+					adminUserPassword: true
 				},
 			},
 		},

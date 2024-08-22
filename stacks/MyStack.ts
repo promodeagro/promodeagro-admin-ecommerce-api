@@ -92,7 +92,12 @@ export function API({ stack }: StackContext) {
 						USER_POOL_ID: cognito.userPoolId,
 						COGNITO_CLIENT: cognito.userPoolClientId,
 					},
-					permissions: ["cognito-idp:AdminConfirmSignUp"],
+					permissions: [
+						"cognito-idp:AdminCreateUser",
+						"cognito-idp:AdminConfirmSignUp",
+						"cognito-idp:AdminUpdateUserAttributes",
+						"cognito-idp:AdminSetUserPassword",
+					],
 				},
 			},
 			"POST /auth/signin": {
@@ -104,6 +109,45 @@ export function API({ stack }: StackContext) {
 						COGNITO_CLIENT: cognito.userPoolClientId,
 					},
 					permissions: [],
+					// 	COGNITO_CLIENT: cognito.userPoolClientId,
+					// },
+				},
+			},
+			"POST /auth/forgot-password": {
+				authorizer: "none",
+				function: {
+					handler: "packages/functions/api/auth/auth.forgotPassword",
+					environment: {
+						USER_POOL_ID: cognito.userPoolId,
+						COGNITO_CLIENT: cognito.userPoolClientId,
+					},
+					permissions: [],
+					// 	COGNITO_CLIENT: cognito.userPoolClientId,
+					// },
+				},
+			},
+			"POST /auth/reset-password": {
+				authorizer: "none",
+				function: {
+					handler: "packages/functions/api/auth/auth.resetPassword",
+					environment: {
+						USER_POOL_ID: cognito.userPoolId,
+						COGNITO_CLIENT: cognito.userPoolClientId,
+					},
+					permissions: [],
+					// 	COGNITO_CLIENT: cognito.userPoolClientId,
+					// },
+				},
+			},
+			"POST /auth/change-password": {
+				authorizer: "none",
+				function: {
+					handler: "packages/functions/api/auth/auth.changePassword",
+					environment: {
+						USER_POOL_ID: cognito.userPoolId,
+						COGNITO_CLIENT: cognito.userPoolClientId,
+					},
+					permissions: ["cognito-idp:AdminInitiateAuth"],
 					// 	COGNITO_CLIENT: cognito.userPoolClientId,
 					// },
 				},
