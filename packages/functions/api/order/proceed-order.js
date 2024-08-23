@@ -1,5 +1,5 @@
 import { findById } from "../../common/data";
-import { Config } from "sst/node/config";
+import { Table } from "sst/node/table";
 import { SFNClient, SendTaskSuccessCommand } from "@aws-sdk/client-sfn";
 
 const stepFunctionClient = new SFNClient({ region: "us-east-1" });
@@ -10,7 +10,9 @@ export const handler = async (event) => {
 	const idArr = orderIds.split(",");
 
 	try {
-		await Promise.all(idArr.map(orderId => processOrder(orderId, assignedTo)));
+		await Promise.all(
+			idArr.map((orderId) => processOrder(orderId, assignedTo))
+		);
 		return {
 			statusCode: 200,
 			body: JSON.stringify({ message: "success" }),
@@ -32,11 +34,15 @@ const processOrder = async (orderId, assignedTo) => {
 		}
 
 		if (response.status === "packed" && !assignedTo) {
-			throw new Error(`Assignee not provided for packed order: ${orderId}`);
+			throw new Error(
+				`Assignee not provided for packed order: ${orderId}`
+			);
 		}
 
 		if (response.status !== "packed" && assignedTo) {
-			throw new Error(`Cannot assign order that is not packed: ${orderId}`);
+			throw new Error(
+				`Cannot assign order that is not packed: ${orderId}`
+			);
 		}
 
 		const input = {

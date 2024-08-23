@@ -22,15 +22,6 @@ export function API({ stack }: StackContext) {
 
 	mediaBucket.cdk.bucket.addToResourcePolicy(getObjectPolicy);
 
-	const inventoryTable = dynamodb.Table.fromTableArn(
-		stack,
-		"inventortyTable",
-		"arn:aws:dynamodb:us-east-1:851725323791:table/Inventory"
-	);
-	const INVENTORY_TABLE = new Config.Parameter(stack, "INVENTORY_TABLE", {
-		value: inventoryTable.tableName,
-	});
-
 	const orderTable = dynamodb.Table.fromTableArn(
 		stack,
 		"orderTable",
@@ -53,16 +44,14 @@ export function API({ stack }: StackContext) {
 
 	const cognito = use(AuthStack);
 
-	const adminUsersTable = new Table(stack, "adminUsersTable", {
+	const inventoryTable = new Table(stack, "inventoryTable", {
 		fields: {
 			id: "string",
-			email: "string",
 			name: "string",
-			role: "string",
 		},
 		primaryIndex: { partitionKey: "id" },
 		globalIndexes: {
-			byEmail: { partitionKey: "email" },
+			nameIndex: { partitionKey: "name" },
 		},
 	});
 
@@ -82,7 +71,7 @@ export function API({ stack }: StackContext) {
 			primaryIndex: { partitionKey: "id" },
 		}
 	);
-	const tables = [adminUsersTable, inventoryModificationTable];
+	const tables = [inventoryTable, inventoryModificationTable];
 
 	const api = new Api(stack, "api", {
 		// authorizers: {
@@ -125,9 +114,6 @@ export function API({ stack }: StackContext) {
 						USER_POOL_ID: cognito.userPoolId,
 						COGNITO_CLIENT: cognito.userPoolClientId,
 					},
-					permissions: [],
-					// 	COGNITO_CLIENT: cognito.userPoolClientId,
-					// },
 				},
 			},
 			"POST /auth/forgot-password": {
@@ -138,9 +124,6 @@ export function API({ stack }: StackContext) {
 						USER_POOL_ID: cognito.userPoolId,
 						COGNITO_CLIENT: cognito.userPoolClientId,
 					},
-					permissions: [],
-					// 	COGNITO_CLIENT: cognito.userPoolClientId,
-					// },
 				},
 			},
 			"POST /auth/reset-password": {
@@ -151,9 +134,6 @@ export function API({ stack }: StackContext) {
 						USER_POOL_ID: cognito.userPoolId,
 						COGNITO_CLIENT: cognito.userPoolClientId,
 					},
-					permissions: [],
-					// 	COGNITO_CLIENT: cognito.userPoolClientId,
-					// },
 				},
 			},
 			"POST /auth/change-password": {
@@ -165,72 +145,54 @@ export function API({ stack }: StackContext) {
 						COGNITO_CLIENT: cognito.userPoolClientId,
 					},
 					permissions: ["cognito-idp:AdminInitiateAuth"],
-					// 	COGNITO_CLIENT: cognito.userPoolClientId,
-					// },
 				},
 			},
 			"GET /inventory": {
 				function: {
 					handler:
 						"packages/functions/api/inventory/get-items.handler",
-					permissions: [inventoryTable],
-					bind: [INVENTORY_TABLE],
 				},
 			},
 			"GET /inventory/{id}": {
 				function: {
 					handler:
 						"packages/functions/api/inventory/get-item.handler",
-					permissions: [inventoryTable],
-					bind: [INVENTORY_TABLE],
 				},
 			},
 			"GET /inventory/stats": {
 				function: {
 					handler:
 						"packages/functions/api/inventory/inventory-stats.handler",
-					permissions: [inventoryTable],
-					bind: [INVENTORY_TABLE],
 				},
 			},
 			"POST /inventory": {
 				function: {
 					handler:
 						"packages/functions/api/inventory/add-item.handler",
-					permissions: [inventoryTable],
-					bind: [INVENTORY_TABLE],
 				},
 			},
 			"PUT /inventory/status": {
 				function: {
 					handler:
 						"packages/functions/api/inventory/update-item-status.handler",
-					permissions: [inventoryTable],
-					bind: [INVENTORY_TABLE],
 				},
 			},
 			"PUT /inventory/{id}/price": {
 				function: {
 					handler:
 						"packages/functions/api/inventory/update-item-price.handler",
-					permissions: [inventoryTable],
-					bind: [INVENTORY_TABLE],
 				},
 			},
 			"POST /inventory/adjust": {
 				function: {
 					handler:
 						"packages/functions/api/inventory/inventory-mod.add",
-					permissions: [inventoryTable],
-					bind: [...tables, INVENTORY_TABLE],
 				},
 			},
 			"GET /inventory/adjust": {
 				function: {
 					handler:
 						"packages/functions/api/inventory/inventory-mod.list",
-					permissions: [inventoryTable],
-					bind: [...tables, INVENTORY_TABLE],
 				},
 			},
 			"GET /uploadUrl": {

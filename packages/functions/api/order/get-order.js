@@ -1,7 +1,7 @@
 import { findById } from "../../common/data";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, GetCommand } from "@aws-sdk/lib-dynamodb";
-import { Config } from "sst/node/config";
+import { Table } from "sst/node/table";
 
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
@@ -40,7 +40,7 @@ export const handler = async (event) => {
 			},
 			items: orderData.items,
 			createdAt: orderData.createdAt,
-			assignedTo : orderData.assigned || undefined
+			assignedTo: orderData.assigned || undefined,
 		};
 		return {
 			statusCode: 200,

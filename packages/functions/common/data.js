@@ -124,3 +124,23 @@ export async function productExistsByName(tableName, productName) {
 		throw error;
 	}
 }
+
+export const itemExits = async (tableName, name) => {
+	const queryParams = {
+		TableName: tableName,
+		IndexName: "nameIndex",
+		KeyConditionExpression: "#itemName = :name",
+		ExpressionAttributeNames: {
+			"#itemName": "name",
+		},
+		ExpressionAttributeValues: {
+			":name": name,
+		},
+	};
+	const queryCommand = new QueryCommand(queryParams);
+	const queryResult = await docClient.send(queryCommand);
+
+	if (queryResult.Items && queryResult.Items.length > 0) {
+		throw new Error("An item with this name already exists");
+	}
+};

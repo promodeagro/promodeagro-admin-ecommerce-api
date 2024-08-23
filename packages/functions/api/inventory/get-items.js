@@ -1,10 +1,11 @@
 import { findAll } from "../../common/data";
-import { Config } from "sst/node/config";
+import { Table } from "sst/node/table";
 
 export const handler = async (event) => {
 	let nextKey = event.queryStringParameters?.pageKey || undefined;
 	try {
-		const data = await findAll(Config.INVENTORY_TABLE, nextKey);
+		console.log("name", Table.inventoryTable.tableName);
+		const data = await findAll(Table.inventoryTable.tableName, nextKey);
 		return {
 			statusCode: 200,
 			body: JSON.stringify({

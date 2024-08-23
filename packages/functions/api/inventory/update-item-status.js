@@ -1,7 +1,7 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import z from "zod";
-import { Config } from "sst/node/config";
+import { Table } from "sst/node/table";
 
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
@@ -28,7 +28,7 @@ export const handler = async (event) => {
 	const { id, active } = req;
 
 	const params = {
-		TableName: Config.INVENTORY_TABLE,
+		TableName: Table.inventoryTable.tableName,
 		Key: {
 			id: id,
 		},

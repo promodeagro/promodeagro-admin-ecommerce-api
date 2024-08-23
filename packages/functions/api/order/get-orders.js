@@ -1,5 +1,5 @@
 import { findAll } from "../../common/data";
-import { Config } from "sst/node/config";
+import { Table } from "sst/node/table";
 
 export const handler = async (event) => {
 	let nextKey = event.queryStringParameters?.pageKey || undefined;

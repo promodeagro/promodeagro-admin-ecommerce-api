@@ -1,7 +1,10 @@
 import crypto from "crypto";
-import { save, productExistsByName } from "../../common/data";
+import { save, itemExits } from "../../common/data";
 import z from "zod";
-import { Config } from "sst/node/config";
+import { Table } from "sst/node/table";
+import middy from "@middy/core";
+import { bodyValidator } from "../util/bodyValidator";
+import { errorHandler } from "../util/errorHandler";
 
 const inventoryItemSchema = z.object({
 	name: z.string(),
@@ -17,26 +20,15 @@ const inventoryItemSchema = z.object({
 	images: z.array(z.string().url()).min(1, "at least 1 image is required"),
 });
 
-export const handler = async (event) => {
+export const handler = middy(async (event) => {
 	const req = JSON.parse(event.body);
-	const parseRes = inventoryItemSchema.safeParse(req);
-	if (!parseRes.success) {
-		const errorMessage = parseRes.error.errors
-			.map((err) => `${err.path.join(".")}: ${err.message}`)
-			.join("; ");
-		return {
-			statusCode: 400,
-			body: JSON.stringify({ message: errorMessage }),
-		};
-	}
-	// const exists = await productExistsByName(Config.INVENTORY_TABLE, req.name);
-	// console.log("exists :", exists);
+	await itemExits(Table.inventoryTable.tableName, req.name.toLowerCase());
 	const uuid = crypto.randomUUID();
 	const itemCode = uuid.split("-")[0].toUpperCase();
 	const item = {
 		id: uuid,
 		itemCode,
-		name: req.name,
+		name: req.name.toLowerCase(),
 		description: req.description,
 		category: req.category,
 		units: req.units,
@@ -48,17 +40,12 @@ export const handler = async (event) => {
 		updatedAt: new Date().toISOString(),
 		images: req.images || [],
 	};
-	try {
-		await save(Config.INVENTORY_TABLE, item);
-		return {
-			statusCode: 200,
-			body: JSON.stringify({ message: "Item added successfully" }),
-		};
-	} catch (error) {
-		console.error("Error adding item to DynamoDB", error);
-		return {
-			statusCode: 500,
-			body: JSON.stringify({ message: "Error adding item to inventory" }),
-		};
-	}
-};
+	await save(Table.inventoryTable.tableName, item);
+
+	return {
+		statusCode: 200,
+		body: JSON.stringify({ message: "Item added successfully" }),
+	};
+})
+	.use(bodyValidator(inventoryItemSchema))
+	.use(errorHandler());

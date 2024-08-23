@@ -6,7 +6,7 @@ import { bodyValidator } from "../util/bodyValidator";
 import { errorHandler } from "../util/errorHandler";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, UpdateCommand } from "@aws-sdk/lib-dynamodb";
-import { Config } from "sst/node/config";
+import { Table } from "sst/node/table";
 
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
@@ -54,7 +54,7 @@ export const add = middy(async (event) => {
 
 const updateItem = async (item) => {
 	const params = {
-		TableName: Config.INVENTORY_TABLE,
+		TableName: Table.inventoryTable.tableName,
 		Key: { id: item.id },
 		UpdateExpression:
 			"SET onlineStorePrice = :osp, purchasingPrice = :pp, stockQuantity = stockQuantity + :aq",

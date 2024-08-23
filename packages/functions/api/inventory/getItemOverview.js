@@ -5,7 +5,7 @@ import {
 	ScanCommand,
 } from "@aws-sdk/client-dynamodb";
 import { unmarshall } from "@aws-sdk/util-dynamodb";
-import { Config } from "sst/node/config";
+import { Table } from "sst/node/table";
 
 const REGION = "us-east-1";
 const dynamoDbClient = new DynamoDBClient({ region: REGION });
@@ -32,7 +32,7 @@ export const handler = async (event) => {
 		});
 
 		const inventoryData = await scanTable(
-			Config.INVENTORY_TABLE,
+			Table.inventoryTable.tableName,
 			"productId",
 			id,
 			{

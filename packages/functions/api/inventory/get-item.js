@@ -1,6 +1,5 @@
 import { findById } from "../../common/data";
-import { Config } from "sst/node/config";
-
+import { Table } from "sst/node/table";
 export const handler = async (event) => {
 	let id = event.pathParameters?.id;
 	if (!id) {
@@ -10,7 +9,7 @@ export const handler = async (event) => {
 		};
 	}
 	try {
-		const data = await findById(Config.INVENTORY_TABLE, id);
+		const data = await findById(Table.inventoryTbale.tableName, id);
 		return {
 			statusCode: 200,
 			body: JSON.stringify(data),

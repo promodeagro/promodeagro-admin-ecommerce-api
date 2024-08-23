@@ -1,6 +1,6 @@
 import z from "zod";
 import { update } from "../../common/data";
-import { Config } from "sst/node/config";
+import { Table } from "sst/node/table";
 
 const reqSchmea = z
 	.object({
@@ -35,7 +35,11 @@ export const handler = async (event) => {
 			compareAt: req.compareAt,
 			onlineStorePrice: req.onlineStorePrice,
 		};
-		const data = await update(Config.INVENTORY_TABLE, { id: id }, item);
+		const data = await update(
+			Table.inventoryTable.tableName,
+			{ id: id },
+			item
+		);
 		return {
 			statusCode: 200,
 			body: JSON.stringify({ message: data }),
