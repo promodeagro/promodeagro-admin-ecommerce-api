@@ -13,6 +13,7 @@ const docClient = DynamoDBDocumentClient.from(client);
 
 const ItemSchema = z.object({
 	id: z.string(),
+	itemCode: z.string(),
 	name: z.string(),
 	stock: z.number().int(),
 	currentCompareAtPrice: z.number(),

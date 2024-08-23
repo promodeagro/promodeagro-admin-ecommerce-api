@@ -171,7 +171,41 @@ This document provides detailed information about the available API endpoints, i
         "message": "Your password has been reset successfully."
     }
     ```
+### POST /inventory/adjust
 
+Adjust the inventory for a list of items.
+
+### Request Body
+
+The request body must be a JSON object with the following structure:
+
+```json
+{
+  "reason": "string",
+  "description": "string",
+  "location": "string",
+  "items": [
+    {
+      "id": "string",
+      "itemCode": "string",
+      "name": "string",
+      "stock": "integer",
+      "currentCompareAtPrice": "number",
+      "currentOnlineStorePrice": "number",
+      "adjustQuantity": "integer",
+      "newPurchasingPrice": "number",
+      "newOnlineStorePrice": "number"
+    }
+  ]
+}
+```
+
+#### Get All Inventory adjustment Items
+- **HTTP Verb:** GET
+- **Route:** `/inventory/adjust`
+- **Description:** Retrieves all inventory adjust items.
+- **Path Parameters:** None
+- **Query Parameters:** None
 
 ## Notes
 - All endpoints are secured and require appropriate permissions.
