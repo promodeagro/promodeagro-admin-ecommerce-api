@@ -108,6 +108,10 @@ export const signup = async (event) => {
 	}
 };
 
+const forgotPassSchema = z.object({
+	email: emailSchema,
+});
+
 export const forgotPassword = middy(async (event) => {
 	const { email } = JSON.parse(event.body);
 	const forgotPasswordParams = {
@@ -126,7 +130,7 @@ export const forgotPassword = middy(async (event) => {
 		}),
 	};
 })
-	.use(bodyValidator(emailSchema))
+	.use(bodyValidator(forgotPassSchema))
 	.use(errorHandler());
 
 const resetPasswordSchema = z.object({
