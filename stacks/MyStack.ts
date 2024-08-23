@@ -82,7 +82,7 @@ export function API({ stack }: StackContext) {
 			primaryIndex: { partitionKey: "id" },
 		}
 	);
-	const tables = [adminUsersTable];
+	const tables = [adminUsersTable, inventoryModificationTable];
 
 	const api = new Api(stack, "api", {
 		// authorizers: {
@@ -215,6 +215,22 @@ export function API({ stack }: StackContext) {
 						"packages/functions/api/inventory/update-item-price.handler",
 					permissions: [inventoryTable],
 					bind: [INVENTORY_TABLE],
+				},
+			},
+			"POST /inventory/adjust": {
+				function: {
+					handler:
+						"packages/functions/api/inventory/inventory-mod.add",
+					permissions: [inventoryTable],
+					bind: [...tables, INVENTORY_TABLE],
+				},
+			},
+			"GET /inventory/adjust": {
+				function: {
+					handler:
+						"packages/functions/api/inventory/inventory-mod.list",
+					permissions: [inventoryTable],
+					bind: [...tables, INVENTORY_TABLE],
 				},
 			},
 			"GET /uploadUrl": {
