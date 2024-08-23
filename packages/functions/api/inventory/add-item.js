@@ -10,7 +10,6 @@ const inventoryItemSchema = z.object({
 	units: z.union([z.literal("pieces"), z.literal("grams")], {
 		message: "units must be either 'pieces' or 'grams'",
 	}),
-	// units: z.enum(["pieces, grams"]),
 	purchasingPrice: z.number().positive(),
 	msp: z.number().positive(),
 	stockQuantity: z.number().int().nonnegative(),

@@ -65,6 +65,23 @@ export function API({ stack }: StackContext) {
 			byEmail: { partitionKey: "email" },
 		},
 	});
+
+	const inventoryModificationTable = new Table(
+		stack,
+		"inventoryModificationTable",
+		{
+			fields: {
+				id: "string",
+				reason: "string",
+				description: "string",
+				date: "string",
+				adjustedBy: "string",
+				location: "string",
+				items: "string",
+			},
+			primaryIndex: { partitionKey: "id" },
+		}
+	);
 	const tables = [adminUsersTable];
 
 	const api = new Api(stack, "api", {
