@@ -41,7 +41,7 @@ export const handler = middy(async (event) => {
 		images: req.images || [],
 	};
 	await save(Table.inventoryTable.tableName, item);
-
+	// await saveToProductsTable(item);
 	return {
 		statusCode: 200,
 		body: JSON.stringify({ message: "Item added successfully" }),
@@ -49,3 +49,10 @@ export const handler = middy(async (event) => {
 })
 	.use(bodyValidator(inventoryItemSchema))
 	.use(errorHandler());
+
+// const saveToProductsTable = async (item) => {
+// 	const itemAsPerProductsTable = {
+// 		...item,
+// 	};
+// 	await save("ProductsTableNAme", itemAsPerProductsTable);
+// };
