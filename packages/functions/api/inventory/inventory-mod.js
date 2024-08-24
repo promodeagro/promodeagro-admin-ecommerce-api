@@ -6,7 +6,6 @@ import { bodyValidator } from "../util/bodyValidator";
 import { errorHandler } from "../util/errorHandler";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, UpdateCommand } from "@aws-sdk/lib-dynamodb";
-import { Table } from "sst/node/table";
 
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);

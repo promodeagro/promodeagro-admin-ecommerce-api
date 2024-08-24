@@ -177,7 +177,7 @@ export function API({ stack }: StackContext) {
 						"packages/functions/api/inventory/update-item-status.handler",
 				},
 			},
-			"PUT /inventory/{id}/price": {
+			"PUT /inventory/price": {
 				function: {
 					handler:
 						"packages/functions/api/inventory/update-item-price.handler",
