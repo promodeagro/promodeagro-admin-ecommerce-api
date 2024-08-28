@@ -70,7 +70,9 @@ This document provides detailed information about the available API endpoints, i
 - **Route:** `/order`
 - **Description:** Retrieves all orders.
 - **Path Parameters:** None
-- **Query Parameters:** None
+- **Query Parameters:** 
+  - `pageKey` (string): The key of the page for pagination
+  - `status` (string): filter for orders by status
 
 #### 2. Get Order by ID
 - **HTTP Verb:** GET
