@@ -47,12 +47,25 @@ This document provides detailed information about the available API endpoints, i
 
 #### 6. Update Inventory Item Price
 - **HTTP Verb:** PUT
-- **Route:** `/inventory/{id}/price`
+- **Route:** `/inventory/price`
 - **Description:** Updates the price of a specific inventory item.
 - **Path Parameters:**
-  - `id` (string): The ID of the inventory item.
 - **Query Parameters:** None
-- **Request Body:** JSON object containing the price update.
+- **Request Body:**
+    ```json
+      [
+        {
+          "id": "1db750d8-7635-4f4d-a70a-e1380530bbec",
+          "compareAt": 100.00,
+          "onlineStorePrice": 80.00
+        },
+        {
+          "id": "a5a0ccc1-8dad-4255-b636-fad1f2cab432",
+          "compareAt": 120.00,
+          "onlineStorePrice": 90.00
+        }
+      ]
+    ```
 
 ### Media Endpoints
 
