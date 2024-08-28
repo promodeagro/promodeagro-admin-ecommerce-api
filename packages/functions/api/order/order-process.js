@@ -1,5 +1,5 @@
 import { update } from "../../common/data";
-import { Table } from "sst/node/table";
+import { Config } from "sst/node/config";
 
 export const handler = async (event) => {
 	const id = event.body.id;

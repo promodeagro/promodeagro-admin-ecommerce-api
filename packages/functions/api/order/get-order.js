@@ -1,7 +1,7 @@
 import { findById } from "../../common/data";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, GetCommand } from "@aws-sdk/lib-dynamodb";
-import { Table } from "sst/node/table";
+import { Config } from "sst/node/config";
 
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);

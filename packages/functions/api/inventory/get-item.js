@@ -1,6 +1,9 @@
+import middy from "@middy/core";
 import { findById } from "../../common/data";
 import { Table } from "sst/node/table";
-export const handler = async (event) => {
+import { errorHandler } from "../util/errorHandler";
+
+export const handler = middy(async (event) => {
 	let id = event.pathParameters?.id;
 	if (!id) {
 		return {
@@ -8,17 +11,9 @@ export const handler = async (event) => {
 			body: JSON.stringify({ message: "id is required" }),
 		};
 	}
-	try {
-		const data = await findById(Table.inventoryTbale.tableName, id);
-		return {
-			statusCode: 200,
-			body: JSON.stringify(data),
-		};
-	} catch (error) {
-		console.error("Error:", error);
-		return {
-			statusCode: 500,
-			body: JSON.stringify({ message: "Error retrieving orders" }),
-		};
-	}
-};
+	const data = await findById(Table.inventoryTable.tableName, id);
+	return {
+		statusCode: 200,
+		body: JSON.stringify(data),
+	};
+}).use(errorHandler());

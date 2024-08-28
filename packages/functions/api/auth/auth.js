@@ -11,7 +11,6 @@ import {
 	AdminInitiateAuthCommand,
 	RespondToAuthChallengeCommand,
 } from "@aws-sdk/client-cognito-identity-provider";
-import { save } from "../../common/data";
 import z from "zod";
 
 const cognitoClient = new CognitoIdentityProviderClient({
@@ -89,12 +88,6 @@ export const signup = async (event) => {
 			new AdminSetUserPasswordCommand(adminSetUserPasswordParams)
 		);
 
-		await save(Table.adminUsersTable.tableName, {
-			id: crypto.randomUUID(),
-			email,
-			name,
-			role,
-		});
 		return {
 			statusCode: 200,
 			body: JSON.stringify({ message: "User created successfully" }),

@@ -8,7 +8,7 @@ import {
 	QueryCommand,
 } from "@aws-sdk/lib-dynamodb";
 
-const client = new DynamoDBClient({});
+const client = new DynamoDBClient({ region: "us-east-1" });
 const docClient = DynamoDBDocumentClient.from(client);
 
 export async function save(tableName, item) {
@@ -20,6 +20,50 @@ export async function save(tableName, item) {
 	};
 	try {
 		await docClient.send(new PutCommand(params));
+	} catch (err) {
+		throw err;
+	}
+}
+
+export async function findAllFilter(tableName, filters) {
+	try {
+		const params = {
+			TableName: tableName,
+			Limit: 50,
+			ExclusiveStartKey: filters.nextKey
+				? {
+						id: { S: filters.nextKey },
+				  }
+				: undefined,
+		};
+		if (filters.status) {
+			params.IndexName = "status-createdAt-index";
+			params.ScanIndexForward = false;
+			params.KeyConditionExpression = "#s = :status";
+			params.ExpressionAttributeNames = {
+				"#s": "status",
+			};
+			params.ExpressionAttributeValues = {
+				":status": filters.status,
+			};
+		}
+		let command;
+		if (filters.status) {
+			command = new QueryCommand(params);
+		} else {
+			command = new ScanCommand(params);
+		}
+		const data = await docClient.send(command);
+		if (data.LastEvaluatedKey) {
+			filters.nextKey = data.LastEvaluatedKey.id;
+		} else {
+			filters.nextKey = undefined;
+		}
+		return {
+			count: data.Count,
+			items: data.Items,
+			nextKey: filters.nextKey,
+		};
 	} catch (err) {
 		throw err;
 	}

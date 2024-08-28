@@ -1,10 +1,14 @@
-import { findAll } from "../../common/data";
-import { Table } from "sst/node/table";
+import { findAll, findAllFilter } from "../../common/data";
+import { Config } from "sst/node/config";
 
 export const handler = async (event) => {
 	let nextKey = event.queryStringParameters?.pageKey || undefined;
+	let status = event.queryStringParameters?.status || undefined;
 	try {
-		const data = await findAll(Config.ORDER_TABLE, nextKey);
+		const data = await findAllFilter(Config.ORDER_TABLE, {
+			nextKey,
+			status,
+		});
 		const res = data.items.map((item) => {
 			return {
 				id: item.id,

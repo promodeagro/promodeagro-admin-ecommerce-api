@@ -1,5 +1,5 @@
 import { findById } from "../../common/data";
-import { Table } from "sst/node/table";
+import { Config } from "sst/node/config";
 import { SFNClient, SendTaskSuccessCommand } from "@aws-sdk/client-sfn";
 
 const stepFunctionClient = new SFNClient({ region: "us-east-1" });
