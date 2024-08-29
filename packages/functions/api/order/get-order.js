@@ -16,22 +16,16 @@ export const handler = async (event) => {
 	}
 	try {
 		const orderData = await findById(Config.ORDER_TABLE, id);
-		const params = {
-			TableName: Config.USERS_TABLE,
-			Key: {
-				UserId: orderData.userId,
-			},
-		};
-		const userRes = await docClient.send(new GetCommand(params));
-		const userData = userRes.Item;
+		// const userData = userRes.Item;
 		//TODO for product category in items
 		const response = {
 			orderId: orderData.id,
 			status: orderData.status,
 			deliverySlot: orderData.deliverySlot,
 			userInfo: {
-				number: userData?.MobileNumber || undefined,
-				name: userData?.Name || undefined,
+				number: orderData?.customerNumber || undefined,
+				name: orderData?.customerName || undefined,
+				id: orderData?.id || undefined,
 			},
 			paymentDetails: orderData.paymentDetails,
 			shippingDetails: {

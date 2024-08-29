@@ -28,6 +28,59 @@ function generateRandomOrder() {
 		Carrot: 10,
 	};
 
+	const customers = [
+		{
+			name: "Sohail",
+			number: "1234567890",
+			id: "1",
+		},
+		{
+			name: "Ali",
+			number: "0987654321",
+			id: "2",
+		},
+		{
+			name: "Shah",
+			number: "5432123456",
+			id: "3",
+		},
+		{
+			name: "Ayesha",
+			number: "1122334455",
+			id: "4",
+		},
+		{
+			name: "Bilal",
+			number: "6677889900",
+			id: "5",
+		},
+		{
+			name: "Fatima",
+			number: "2233445566",
+			id: "6",
+		},
+		{
+			name: "Hamza",
+			number: "9988776655",
+			id: "7",
+		},
+		{
+			name: "Sara",
+			number: "5566778899",
+			id: "8",
+		},
+		{
+			name: "Usman",
+			number: "3344556677",
+			id: "9",
+		},
+		{
+			name: "Zara",
+			number: "7788990011",
+			id: "10",
+		},
+	];
+
 	const productNames = Object.keys(productPrices);
 
 	function getRandomProduct() {
@@ -37,6 +90,9 @@ function generateRandomOrder() {
 			productName: name,
 			price: productPrices[name],
 		};
+	}
+	function getRandomCustomer() {
+		return customers[Math.floor(Math.random() * customers.length)];
 	}
 
 	const items = [
@@ -76,6 +132,7 @@ function generateRandomOrder() {
 		.reduce((sum, item) => sum + item.total, 0)
 		.toFixed(2);
 	const total = tax + deliveryCharges + subTotal;
+	const cus = getRandomCustomer();
 	const order = {
 		id: generateNumericId(),
 		totalPrice: parseFloat(total),
@@ -100,7 +157,9 @@ function generateRandomOrder() {
 		items: calculatedItems,
 		totalSavings: totalSavings.toFixed(2),
 		updatedAt: randomDate(),
-		userId: crypto.randomUUID().split("-")[0],
+		customerId: cus.id,
+		customerName: cus.name,
+		customerNumber: cus.number,
 		assigned: "jane_smith",
 		deliverySlot: {
 			//new Date + 10hours
