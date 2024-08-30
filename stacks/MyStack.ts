@@ -48,10 +48,12 @@ export function API({ stack }: StackContext) {
 		fields: {
 			id: "string",
 			name: "string",
+			category: "string", 
 		},
 		primaryIndex: { partitionKey: "id" },
 		globalIndexes: {
 			nameIndex: { partitionKey: "name" },
+			categoryIndex: { partitionKey: "category" }, 
 		},
 	});
 

@@ -7,6 +7,7 @@ import {
 	UpdateCommand,
 	QueryCommand,
 } from "@aws-sdk/lib-dynamodb";
+import { Table } from "sst/node/table";
 
 const client = new DynamoDBClient({ region: "us-east-1" });
 const docClient = DynamoDBDocumentClient.from(client);
@@ -187,4 +188,54 @@ export const itemExits = async (tableName, name) => {
 	if (queryResult.Items && queryResult.Items.length > 0) {
 		throw new Error("An item with this name already exists");
 	}
+};
+
+export const searchInventory = async (query) => {
+	const params = {
+		TableName: Table.inventoryTable.tableName,
+		FilterExpression:
+			"contains(#itemCode, :query) OR contains(#name, :query)",
+		ExpressionAttributeNames: {
+			"#itemCode": "itemCode",
+			"#name": "name",
+		},
+		ExpressionAttributeValues: {
+			":query": query,
+		},
+	};
+	const command = new ScanCommand(params);
+	const data = await docClient.send(command);
+	return data.Items;
+};
+
+export const inventoryByCategory = async (nextKey, category) => {
+	const params = {
+		TableName: Table.inventoryTable.tableName,
+		IndexName: "categoryIndex",
+		KeyConditionExpression: "#category = :category",
+		ExpressionAttributeNames: {
+			"#category": "category",
+		},
+		ExpressionAttributeValues: {
+			":category": category, // No need to wrap in { S: ... }
+		},
+		Limit: 50,
+		ExclusiveStartKey: nextKey
+			? {
+					id: { S: nextKey },
+			  }
+			: undefined,
+	};
+
+	const command = new QueryCommand(params);
+	const data = await docClient.send(command);
+
+	// Handle pagination
+	const lastEvaluatedKey = data.LastEvaluatedKey;
+
+	return {
+		count: data.Count,
+		items: data.Items,
+		nextKey: lastEvaluatedKey,
+	};
 };

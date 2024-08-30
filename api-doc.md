@@ -12,7 +12,10 @@ This document provides detailed information about the available API endpoints, i
 - **Route:** `/inventory`
 - **Description:** Retrieves all inventory items.
 - **Path Parameters:** None
-- **Query Parameters:** None
+- **Query Parameters**
+    - `search` (optional): A search term to filter inventory items by name.
+    - `category` (optional): A category to filter inventory items.
+    - `pageKey` (optional): A key to fetch the next set of results for pagination.
 
 #### 2. Get Inventory Item by ID
 - **HTTP Verb:** GET
@@ -84,8 +87,9 @@ This document provides detailed information about the available API endpoints, i
 - **Description:** Retrieves all orders.
 - **Path Parameters:** None
 - **Query Parameters:** 
-  - `pageKey` (string): The key of the page for pagination
-  - `status` (string): filter for orders by status
+      - `search` (optional): A search term to filter inventory items by name.
+      - `status` (string): filter for orders by status
+      - `pageKey` (string): The key of the page for pagination
 
 #### 2. Get Order by ID
 - **HTTP Verb:** GET
