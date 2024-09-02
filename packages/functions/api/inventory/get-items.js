@@ -11,11 +11,13 @@ export const handler = middy(async (event) => {
 	let nextKey = event.queryStringParameters?.pageKey || undefined;
 	let search = event.queryStringParameters?.search || undefined;
 	let category = event.queryStringParameters?.category || undefined;
+	let active = event.queryStringParameters?.active || undefined;
+	console.log(active);
 	let data = {};
 	if (search) {
 		data.items = await searchInventory(search);
-	} else if (category) {
-		data = await inventoryByCategory(nextKey, category);
+	} else if (category || active) {
+		data = await inventoryByCategory(nextKey, category, active);
 	} else {
 		data = await findAll(Table.inventoryTable.tableName, nextKey);
 	}

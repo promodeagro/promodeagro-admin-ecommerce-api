@@ -21,12 +21,13 @@ export const handler = middy(async (event) => {
 			status,
 		});
 	}
-	const res = data.items.map((item) => {
-		console.log(item);
+	const itemsArray = Array.isArray(data.items) ? data.items : [data.items];
+
+	const res = itemsArray.map((item) => {
 		return {
 			id: item.id,
 			orderDate: item.createdAt,
-			customerName: item.customerNumber,
+			customerName: item.customerName,
 			items: item.items.length,
 			paymentStatus: item.paymentDetails?.paymentStatus || undefined,
 			orderStatus: item.status,

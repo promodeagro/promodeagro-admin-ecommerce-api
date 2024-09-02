@@ -22,7 +22,16 @@ const inventoryItemSchema = z.object({
 
 export const handler = middy(async (event) => {
 	const req = JSON.parse(event.body);
-	await itemExits(Table.inventoryTable.tableName, req.name.toLowerCase());
+	const exists = await itemExits(
+		Table.inventoryTable.tableName,
+		req.name.toLowerCase()
+	);
+	if (exists) {
+		return {
+			statusCode: 409,
+			body: JSON.stringify({ message: "Item with same name already exists" }),
+		};
+	}
 	const uuid = crypto.randomUUID();
 	const itemCode = uuid.split("-")[0].toUpperCase();
 	const item = {

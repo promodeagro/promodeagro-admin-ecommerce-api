@@ -37,19 +37,19 @@ export async function findAllFilter(tableName, filters) {
 				  }
 				: undefined,
 		};
-		if (filters.status) {
-			params.IndexName = "status-createdAt-index";
+		if (filters.active) {
+			params.IndexName = "active-createdAt-index";
 			params.ScanIndexForward = false;
-			params.KeyConditionExpression = "#s = :status";
+			params.KeyConditionExpression = "#s = :active";
 			params.ExpressionAttributeNames = {
-				"#s": "status",
+				"#s": "active",
 			};
 			params.ExpressionAttributeValues = {
-				":status": filters.status,
+				":active": filters.active,
 			};
 		}
 		let command;
-		if (filters.status) {
+		if (filters.active) {
 			command = new QueryCommand(params);
 		} else {
 			command = new ScanCommand(params);
@@ -185,9 +185,7 @@ export const itemExits = async (tableName, name) => {
 	const queryCommand = new QueryCommand(queryParams);
 	const queryResult = await docClient.send(queryCommand);
 
-	if (queryResult.Items && queryResult.Items.length > 0) {
-		throw new Error("An item with this name already exists");
-	}
+	return queryResult.Items && queryResult.Items.length > 0;
 };
 
 export const searchInventory = async (query) => {
@@ -208,29 +206,41 @@ export const searchInventory = async (query) => {
 	return data.Items;
 };
 
-export const inventoryByCategory = async (nextKey, category) => {
+export const inventoryByCategory = async (nextKey, category, active) => {
 	const params = {
 		TableName: Table.inventoryTable.tableName,
-		IndexName: "categoryIndex",
-		KeyConditionExpression: "#category = :category",
-		ExpressionAttributeNames: {
-			"#category": "category",
-		},
-		ExpressionAttributeValues: {
-			":category": category, // No need to wrap in { S: ... }
-		},
-		Limit: 50,
-		ExclusiveStartKey: nextKey
-			? {
-					id: { S: nextKey },
-			  }
-			: undefined,
+		ExpressionAttributeNames: {},
+		ExpressionAttributeValues: {},
+		FilterExpression: "",
 	};
 
-	const command = new QueryCommand(params);
-	const data = await docClient.send(command);
+	if (category) {
+		params.ExpressionAttributeNames["#category"] = "category";
+		params.ExpressionAttributeValues[":category"] = category;
+		params.FilterExpression += "#category = :category";
+	}
 
-	// Handle pagination
+	if (active) {
+		let status;
+		if(active.toLowerCase() === 'false'){
+			status = flase
+		}else{
+			status = true
+		}
+		params.ExpressionAttributeNames["#active"] = "active";
+		params.ExpressionAttributeValues[":active"] = status;
+		if (category) {
+			params.FilterExpression += " AND ";
+		}
+		params.FilterExpression += "#active = :active";
+	}
+	params.ExclusiveStartKey = nextKey
+		? {
+				id: { S: nextKey },
+		  }
+		: undefined;
+	const command = new ScanCommand(params);
+	const data = await docClient.send(command);
 	const lastEvaluatedKey = data.LastEvaluatedKey;
 
 	return {

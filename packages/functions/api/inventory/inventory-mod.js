@@ -56,9 +56,9 @@ const updateItem = async (item) => {
 		TableName: Table.inventoryTable.tableName,
 		Key: { id: item.id },
 		UpdateExpression:
-			"SET onlineStorePrice = :osp, purchasingPrice = :pp, stockQuantity = stockQuantity + :aq",
+			"SET msp = :msp, purchasingPrice = :pp, stockQuantity = stockQuantity + :aq",
 		ExpressionAttributeValues: {
-			":osp": item.newOnlineStorePrice,
+			":msp": item.newOnlineStorePrice,
 			":pp": item.newPurchasingPrice,
 			":aq": item.adjustQuantity,
 		},
