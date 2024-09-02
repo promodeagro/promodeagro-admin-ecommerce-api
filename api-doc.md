@@ -15,6 +15,7 @@ This document provides detailed information about the available API endpoints, i
 - **Query Parameters**
     - `search` (optional): A search term to filter inventory items by name.
     - `category` (optional): A category to filter inventory items.
+    - `active` (optional): A active to filter inventory items either true or fasle.
     - `pageKey` (optional): A key to fetch the next set of results for pagination.
 
 #### 2. Get Inventory Item by ID
