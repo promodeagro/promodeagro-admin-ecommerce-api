@@ -1,12 +1,10 @@
 import { findById } from "../../common/data";
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, GetCommand } from "@aws-sdk/lib-dynamodb";
 import { Config } from "sst/node/config";
+import middy from "@middy/core";
+import { errorHandler } from "../util/errorHandler";
+import { subtle } from "crypto";
 
-const client = new DynamoDBClient({});
-const docClient = DynamoDBDocumentClient.from(client);
-
-export const handler = async (event) => {
+export const handler = middy(async (event) => {
 	let id = event.pathParameters?.id;
 	if (!id) {
 		return {
@@ -14,37 +12,36 @@ export const handler = async (event) => {
 			body: JSON.stringify({ message: "id is required" }),
 		};
 	}
-	try {
-		const orderData = await findById(Config.ORDER_TABLE, id);
-		// const userData = userRes.Item;
-		//TODO for product category in items
-		const response = {
-			orderId: orderData.id,
-			status: orderData.status,
-			deliverySlot: orderData.deliverySlot,
-			userInfo: {
-				number: orderData?.customerNumber || undefined,
-				name: orderData?.customerName || undefined,
-				id: orderData?.id || undefined,
-			},
-			paymentDetails: orderData.paymentDetails,
-			shippingDetails: {
-				address: orderData.address.address,
-				zipcode: orderData.address.zipCode,
-			},
-			items: orderData.items,
-			createdAt: orderData.createdAt,
-			assignedTo: orderData.assigned || undefined,
-		};
+	const orderData = await findById(Config.ORDER_TABLE, id);
+	if(!orderData){
 		return {
 			statusCode: 200,
-			body: JSON.stringify(response),
-		};
-	} catch (error) {
-		console.error("Error:", error);
-		return {
-			statusCode: 500,
-			body: JSON.stringify({ message: "Error retrieving orders" }),
-		};
-	}
-};
+			body: JSON.stringify({ message: "order doesnt exist" }),
+		};	}
+	const response = {
+		orderId: orderData.id,
+		status: orderData.status,
+		deliverySlot: orderData.deliverySlot,
+		userInfo: {
+			number: orderData?.customerNumber || undefined,
+			name: orderData?.customerName || undefined,
+			id: orderData?.id || undefined,
+		},
+		paymentDetails: orderData.paymentDetails,
+		shippingDetails: {
+			address: orderData.address.address,
+			zipcode: orderData.address.zipCode,
+		},
+		items: orderData.items,
+		tax: parseInt(orderData.tax).toFixed(2),
+		deliveryCharges: parseInt(orderData.deliveryCharges).toFixed(2),
+		subTotal: parseInt(orderData.subTotal).toFixed(2),
+		createdAt: orderData.createdAt,
+		assignedTo: orderData.assigned || undefined,
+		totalPrice: parseInt(orderData.totalPrice).toFixed(2),
+	};
+	return {
+		statusCode: 200,
+		body: JSON.stringify(response),
+	};
+}).use(errorHandler());
