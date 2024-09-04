@@ -223,7 +223,7 @@ export const inventoryByCategory = async (nextKey, category, active) => {
 	if (active) {
 		let status;
 		if(active.toLowerCase() === 'false'){
-			status = flase
+			status = false
 		}else{
 			status = true
 		}
