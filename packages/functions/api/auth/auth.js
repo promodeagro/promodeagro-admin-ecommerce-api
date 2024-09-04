@@ -10,6 +10,7 @@ import {
 	ConfirmForgotPasswordCommand,
 	AdminInitiateAuthCommand,
 	RespondToAuthChallengeCommand,
+	GlobalSignOutCommand,
 } from "@aws-sdk/client-cognito-identity-provider";
 import z from "zod";
 
@@ -43,13 +44,14 @@ export const signin = middy(async (event) => {
 
 	const authCommand = new InitiateAuthCommand(authParams);
 	const authResponse = await cognitoClient.send(authCommand);
-
-	const accessToken = authResponse.AuthenticationResult?.IdToken;
+	const accessToken = authResponse.AuthenticationResult?.AccessToken;
+	const idToken = authResponse.AuthenticationResult?.IdToken;
 	const refreshToken = authResponse.AuthenticationResult?.RefreshToken;
 	return {
 		statusCode: 200,
 		body: JSON.stringify({
 			accessToken: accessToken,
+			idToken: idToken,
 			refreshToken: refreshToken,
 		}),
 	};
@@ -197,3 +199,26 @@ export const changePassword = async (event) => {
 		};
 	}
 };
+
+const signoutSchema = z.object({
+	accessToken: z.string(),
+});
+
+export const signout = middy(async (event) => {
+	const { accessToken } = JSON.parse(event.body);
+	const signOutParams = {
+		AccessToken: accessToken,
+	};
+
+	const command = new GlobalSignOutCommand(signOutParams);
+	await cognitoClient.send(command);
+
+	return {
+		statusCode: 200,
+		body: JSON.stringify({
+			message: "Successfully signed out",
+		}),
+	};
+})
+	.use(bodyValidator(signoutSchema))
+	.use(errorHandler());

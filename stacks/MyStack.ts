@@ -118,6 +118,16 @@ export function API({ stack }: StackContext) {
 					},
 				},
 			},
+			"POST /auth/signout": {
+				authorizer: "none",
+				function: {
+					handler: "packages/functions/api/auth/auth.signout",
+					environment: {
+						USER_POOL_ID: cognito.userPoolId,
+						COGNITO_CLIENT: cognito.userPoolClientId,
+					},
+				},
+			},
 			"POST /auth/forgot-password": {
 				authorizer: "none",
 				function: {
