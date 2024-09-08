@@ -221,6 +221,13 @@ export function API({ stack }: StackContext) {
 					bind: [ORDER_TABLE],
 				},
 			},
+			"GET /order-filter": {
+				function: {
+					handler: "packages/functions/api/order/order-filter.handler",
+					permissions: [orderTable],
+					bind: [ORDER_TABLE],
+				},
+			},
 			"GET /order/{id}": {
 				function: {
 					handler: "packages/functions/api/order/get-order.handler",
