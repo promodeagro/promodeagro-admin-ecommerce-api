@@ -1,7 +1,11 @@
 import middy from "@middy/core";
 import { errorHandler } from "../util/errorHandler";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, ScanCommand, GetCommand } from "@aws-sdk/lib-dynamodb";
+import {
+  DynamoDBDocumentClient,
+  ScanCommand,
+  GetCommand,
+} from "@aws-sdk/lib-dynamodb";
 
 const client = new DynamoDBClient({
   region: process.env.REGION || "us-east-1",
@@ -27,16 +31,16 @@ const calculateOldOrdersRange = (days) => {
   oldDate.setDate(oldDate.getDate() - days);
   oldDate.setUTCHours(0, 0, 0, 0);
   return {
-    startOfDayISO: "1970-01-01T00:00:00.000Z", 
+    startOfDayISO: "1970-01-01T00:00:00.000Z",
     endOfDayISO: oldDate.toISOString(),
   };
 };
 
 const getAddressArea = async (userId, addressId) => {
   const addressParams = {
-    TableName: process.env.ADDRESSES_TABLE || "Addresses", 
+    TableName: process.env.ADDRESSES_TABLE || "Addresses",
     Key: {
-      userId,       
+      userId,
       addressId,
     },
   };
@@ -47,7 +51,7 @@ const getAddressArea = async (userId, addressId) => {
       return addressData.Item.area;
     } else {
       console.log(`Area not found for addressId: ${addressId}`);
-      return "no data available"
+      return "no data available";
     }
   } catch (error) {
     console.error(`Error fetching address for addressId ${addressId}:`, error);
@@ -98,41 +102,44 @@ export const handler = middy(async (event) => {
       ":endOfDay": endOfDayISO,
     },
   };
-    const ordersData = await docClient.send(new ScanCommand(ordersParams));
-    if (!ordersData.Items || ordersData.Items.length === 0) {
-      return {
-        statusCode: 200,
-        body: JSON.stringify({
-          message: `No orders found for the selected date range`,
-        }),
-      };
-    }
-
-    // Fetch area for each order based on addressId
-    const formattedOrders = await Promise.all(
-      ordersData.Items.map(async (item) => {
-        let area = "no data available"; 
-        if (item.address?.addressId && item.address?.userId) {
-          area = await getAddressArea(item.address.userId, item.address.addressId);
-        }
-
-        return {
-          orderId: item.id || "",
-          orderDate: item.createdAt || "",
-          customerName: item.customerName || "",
-          itemsCount: item.items ? item.items.length : 0,
-          paymentStatus: item.paymentDetails?.status || "",
-          orderStatus: item.status || "",
-          totalAmount: item.totalPrice || 0,
-          area: area,
-        };
-      })
-    );
-
+  const ordersData = await docClient.send(new ScanCommand(ordersParams));
+  if (!ordersData.Items || ordersData.Items.length === 0) {
     return {
       statusCode: 200,
       body: JSON.stringify({
-        items: formattedOrders,
+        message: `No orders found for the selected date range`,
       }),
     };
+  }
+
+  // Fetch area for each order based on addressId
+  const formattedOrders = await Promise.all(
+    ordersData.Items.map(async (item) => {
+      let area = "no data available";
+      if (item.address?.addressId && item.address?.userId) {
+        area = await getAddressArea(
+          item.address.userId,
+          item.address.addressId
+        );
+      }
+
+      return {
+        orderId: item.id || "",
+        orderDate: item.createdAt || "",
+        customerName: item.customerName || "",
+        itemsCount: item.items ? item.items.length : 0,
+        paymentStatus: item.paymentDetails?.status || "",
+        orderStatus: item.status || "",
+        totalAmount: item.totalPrice || 0,
+        area: area,
+      };
+    })
+  );
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify({
+      items: formattedOrders,
+    }),
+  };
 }).use(errorHandler());
