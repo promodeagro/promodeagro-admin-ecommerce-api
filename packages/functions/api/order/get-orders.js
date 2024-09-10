@@ -32,6 +32,7 @@ export const handler = middy(async (event) => {
 			paymentStatus: item.paymentDetails?.paymentStatus || undefined,
 			orderStatus: item.status,
 			totalAmount: item.totalPrice,
+			assignee: item?.assigned || undefined,
 			area: item.address.address,
 		};
 	});
