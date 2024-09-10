@@ -92,6 +92,15 @@ This document provides detailed information about the available API endpoints, i
       - `status` (string): filter for orders by status
       - `pageKey` (string): The key of the page for pagination
 
+
+#### 1. Orders-filter
+- **HTTP Verb:** GET
+- **Route:** `/order-filter`
+- **Description:** Retrieves orders data.
+- **Path Parameters:** None
+- **Query Parameters:** 
+      - `filter` (string): filter for last 7 day old,14 Days old, 1 months old,2 months old, old orders.
+
 #### 2. Get Order by ID
 - **HTTP Verb:** GET
 - **Route:** `/order/{id}`

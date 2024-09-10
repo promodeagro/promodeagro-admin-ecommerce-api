@@ -27,9 +27,17 @@ export function API({ stack }: StackContext) {
 		"orderTable",
 		"arn:aws:dynamodb:us-east-1:851725323791:table/Orders"
 	);
-
 	const ORDER_TABLE = new Config.Parameter(stack, "ORDER_TABLE", {
 		value: orderTable.tableName,
+	});
+	
+	const AddressesTable = dynamodb.Table.fromTableArn(
+		stack,
+		"AddressesTable",
+		"arn:aws:dynamodb:us-east-1:851725323791:table/Addresses"
+	);
+	const ADDRESS_TABLE = new Config.Parameter(stack, "ADDRESS_TABLE", {
+		value: AddressesTable.tableName,
 	});
 
 	const usersTable = dynamodb.Table.fromTableArn(
@@ -219,6 +227,13 @@ export function API({ stack }: StackContext) {
 					handler: "packages/functions/api/order/get-orders.handler",
 					permissions: [orderTable],
 					bind: [ORDER_TABLE],
+				},
+			},
+			"GET /order-filter": {
+				function: {
+					handler: "packages/functions/api/order/order-filter.handler",
+					permissions: [orderTable,AddressesTable],
+					bind: [ORDER_TABLE, ADDRESS_TABLE],
 				},
 			},
 			"GET /order/{id}": {
