@@ -15,7 +15,7 @@ export const handler = middy(async (event) => {
 	await update(
 		Table.productsTable.tableName,
 		{ id: id },
-		{ active: active }
+		{ availability: active }
 	);
 	// await update("ProductsTableName", { id: id }, { active: active });
 	return {
