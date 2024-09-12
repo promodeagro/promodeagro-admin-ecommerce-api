@@ -7,7 +7,7 @@ import { errorHandler } from "../util/errorHandler";
 
 const reqSchmea = z.array(
 	z.object({
-		id: z.string(),
+		itemCode: z.string(),
 		compareAt: z.number().positive(),
 		onlineStorePrice: z.number().positive(),
 	}).refine((ob) => ob.compareAt > ob.onlineStorePrice, {
@@ -20,7 +20,7 @@ export const handler = middy(async (event) => {
 		req.map((item) => {
 			return update(
 				Table.inventoryTable.tableName,
-				{ id: item.id },
+				{ id: item.itemCode },
 				{
 					compareAt: item.compareAt,
 					onlineStorePrice: item.onlineStorePrice,

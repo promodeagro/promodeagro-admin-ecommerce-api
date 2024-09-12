@@ -30,7 +30,7 @@ export function API({ stack }: StackContext) {
 	const ORDER_TABLE = new Config.Parameter(stack, "ORDER_TABLE", {
 		value: orderTable.tableName,
 	});
-	
+
 	const AddressesTable = dynamodb.Table.fromTableArn(
 		stack,
 		"AddressesTable",
@@ -55,13 +55,24 @@ export function API({ stack }: StackContext) {
 	const inventoryTable = new Table(stack, "inventoryTable", {
 		fields: {
 			id: "string",
+			productId: "string",
+		},
+		primaryIndex: { partitionKey: "id" },
+		globalIndexes: {
+			productIdIndex: { partitionKey: "productId" },
+		},
+	});
+
+	const productsTable = new Table(stack, "productsTable", {
+		fields: {
+			id: "string",
 			name: "string",
-			category: "string", 
+			category: "string",
 		},
 		primaryIndex: { partitionKey: "id" },
 		globalIndexes: {
 			nameIndex: { partitionKey: "name" },
-			categoryIndex: { partitionKey: "category" }, 
+			categoryIndex: { partitionKey: "category" },
 		},
 	});
 
@@ -81,7 +92,7 @@ export function API({ stack }: StackContext) {
 			primaryIndex: { partitionKey: "id" },
 		}
 	);
-	const tables = [inventoryTable, inventoryModificationTable];
+	const tables = [inventoryTable, inventoryModificationTable, productsTable];
 
 	const api = new Api(stack, "api", {
 		// authorizers: {
@@ -231,8 +242,9 @@ export function API({ stack }: StackContext) {
 			},
 			"GET /order-filter": {
 				function: {
-					handler: "packages/functions/api/order/order-filter.handler",
-					permissions: [orderTable,AddressesTable],
+					handler:
+						"packages/functions/api/order/order-filter.handler",
+					permissions: [orderTable, AddressesTable],
 					bind: [ORDER_TABLE, ADDRESS_TABLE],
 				},
 			},

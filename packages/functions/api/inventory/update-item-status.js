@@ -13,7 +13,7 @@ const updateActiveSchema = z.object({
 export const handler = middy(async (event) => {
 	const { id, active } = JSON.parse(event.body);
 	await update(
-		Table.inventoryTable.tableName,
+		Table.productsTable.tableName,
 		{ id: id },
 		{ active: active }
 	);

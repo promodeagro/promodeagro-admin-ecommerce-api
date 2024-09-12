@@ -177,18 +177,18 @@ function generateRandomOrder() {
 	return order;
 }
 
-// (async () => {
-// 	let c = 0;
-// 	for (let i = 0; i < 10; i++) {
-// 		console.log("INSERING NEW ORDER");
-// 		await insertOrders();
-// 		console.log(`INSERTED ${++c} ORDERS`);
-// 		console.log("WAITING FOR 500ms");
-// 		await new Promise((resolve) => setTimeout(resolve, 2000));
-// 	}
-// })();
+(async () => {
+	let c = 0;
+	for (let i = 0; i < 10; i++) {
+		console.log("INSERING NEW ORDER");
+		await insertOrders();
+		console.log(`INSERTED ${++c} ORDERS`);
+		console.log("WAITING FOR 500ms");
+		await new Promise((resolve) => setTimeout(resolve, 2000));
+	}
+})();
 
-console.log(JSON.stringify(generateRandomOrder()));
+// console.log(JSON.stringify(generateRandomOrder()));
 
 function generateNumericId() {
 	const part1 = a();

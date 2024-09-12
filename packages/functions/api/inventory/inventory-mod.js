@@ -4,11 +4,7 @@ import { Table } from "sst/node/table";
 import middy from "@middy/core";
 import { bodyValidator } from "../util/bodyValidator";
 import { errorHandler } from "../util/errorHandler";
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, UpdateCommand } from "@aws-sdk/lib-dynamodb";
-
-const client = new DynamoDBClient({});
-const docClient = DynamoDBDocumentClient.from(client);
+import { updateItem } from ".";
 
 const ItemSchema = z.object({
 	id: z.string(),
@@ -50,30 +46,6 @@ export const add = middy(async (event) => {
 })
 	.use(bodyValidator(RequestBodySchema))
 	.use(errorHandler());
-
-const updateItem = async (item) => {
-	const params = {
-		TableName: Table.inventoryTable.tableName,
-		Key: { id: item.id },
-		UpdateExpression:
-			"SET msp = :msp, purchasingPrice = :pp, stockQuantity = stockQuantity + :aq",
-		ExpressionAttributeValues: {
-			":msp": item.newOnlineStorePrice,
-			":pp": item.newPurchasingPrice,
-			":aq": item.adjustQuantity,
-		},
-		ReturnValues: "ALL_NEW",
-	};
-	try {
-		const command = new UpdateCommand(params);
-		const response = await docClient.send(command);
-		console.log("Update succeeded:", response.Attributes);
-		return response.Attributes;
-	} catch (error) {
-		console.error("Unable to update item. Error:", error);
-		throw error;
-	}
-};
 
 export const list = middy(async (event) => {
 	let nextKey = event.queryStringParameters?.pageKey || undefined;

@@ -22,35 +22,38 @@ const inventoryItemSchema = z.object({
 
 export const handler = middy(async (event) => {
 	const req = JSON.parse(event.body);
-	const exists = await itemExits(
-		Table.inventoryTable.tableName,
-		req.name.toLowerCase()
-	);
+	const exists = await itemExits(Table.productsTable.tableName, req.name);
 	if (exists) {
 		return {
 			statusCode: 409,
-			body: JSON.stringify({ message: "Item with same name already exists" }),
+			body: JSON.stringify({
+				message: "Item with same name already exists",
+			}),
 		};
 	}
 	const uuid = crypto.randomUUID();
 	const itemCode = uuid.split("-")[0].toUpperCase();
-	const item = {
+	const productItem = {
 		id: uuid,
-		itemCode,
-		name: req.name.toLowerCase(),
+		name: req.name,
 		description: req.description,
 		category: req.category,
-		units: req.units,
-		purchasingPrice: Number(req.purchasingPrice),
-		msp: Number(req.msp),
-		active: false,
-		stockQuantity: Number(req.stockQuantity),
-		expiry: req.expiry,
-		updatedAt: new Date().toISOString(),
+		unit: req.units,
+		availability: false,
 		images: req.images || [],
 	};
-	await save(Table.inventoryTable.tableName, item);
-	// await saveToProductsTable(item);
+	const inventoryItem = {
+		id: itemCode,
+		productId: uuid,
+		purchasingPrice: Number(req.purchasingPrice),
+		msp: Number(req.msp),
+		stockQuantity: Number(req.stockQuantity),
+		expiry: req.expiry,
+	};
+	await Promise.all([
+		save(Table.inventoryTable.tableName, inventoryItem),
+		save(Table.productsTable.tableName, productItem),
+	]);
 	return {
 		statusCode: 200,
 		body: JSON.stringify({ message: "Item added successfully" }),
@@ -58,10 +61,3 @@ export const handler = middy(async (event) => {
 })
 	.use(bodyValidator(inventoryItemSchema))
 	.use(errorHandler());
-
-// const saveToProductsTable = async (item) => {
-// 	const itemAsPerProductsTable = {
-// 		...item,
-// 	};
-// 	await save("ProductsTableNAme", itemAsPerProductsTable);
-// };
