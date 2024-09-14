@@ -10,6 +10,7 @@ const inventoryItemSchema = z.object({
 	name: z.string(),
 	description: z.string(),
 	category: z.string(),
+	subCategory: z.string(),
 	units: z.union([z.literal("pieces"), z.literal("grams")], {
 		message: "units must be either 'pieces' or 'grams'",
 	}),
@@ -35,11 +36,14 @@ export const handler = middy(async (event) => {
 	const itemCode = uuid.split("-")[0].toUpperCase();
 	const productItem = {
 		id: uuid,
+		itemCode,
 		name: req.name,
 		description: req.description,
 		category: req.category,
-		unit: req.units,
+		subCategory: req.subCategory,
+		unit: req.units.toLowerCase(),
 		availability: false,
+		image: req.images[0],
 		images: req.images || [],
 	};
 	const inventoryItem = {

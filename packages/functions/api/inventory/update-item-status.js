@@ -17,7 +17,6 @@ export const handler = middy(async (event) => {
 		{ id: id },
 		{ availability: active }
 	);
-	// await update("ProductsTableName", { id: id }, { active: active });
 	return {
 		statusCode: 200,
 		body: JSON.stringify({
