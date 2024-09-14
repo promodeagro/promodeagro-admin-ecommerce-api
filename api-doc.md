@@ -40,6 +40,21 @@ This document provides detailed information about the available API endpoints, i
 - **Path Parameters:** None
 - **Query Parameters:** None
 - **Request Body:** JSON object representing the new inventory item.
+  ```json
+      {
+      "name": "Red Apples",
+      "description": "Fresh red apples from local farms.",
+      "category": "Fruit",
+      "units": "pieces",
+      "purchasingPrice": 1.99,
+      "msp": 2.49,
+      "stockQuantity": 100,
+      "expiry": "2024-12-31T00:00:00Z",
+      "images": [
+        "https://example.com/images/apple1.jpg"
+      ]
+    }
+   ```
 
 #### 5. Update Inventory Item Status
 - **HTTP Verb:** PUT
