@@ -75,7 +75,7 @@ async function inventoryByProdId(productId) {
 export const updateItem = async (item) => {
 	const params = {
 		TableName: Table.inventoryTable.tableName,
-		Key: { id: item.id },
+		Key: { id: item.itemCode },
 		UpdateExpression:
 			"SET msp = :msp, purchasingPrice = :pp, stockQuantity = stockQuantity + :aq",
 		ExpressionAttributeValues: {
