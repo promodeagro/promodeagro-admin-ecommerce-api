@@ -37,19 +37,19 @@ export async function findAllFilter(tableName, filters) {
 				  }
 				: undefined,
 		};
-		if (filters.active) {
-			params.IndexName = "active-createdAt-index";
+		if (filters.status) {
+			params.IndexName = "status-createdAt-index";
 			params.ScanIndexForward = false;
-			params.KeyConditionExpression = "#s = :active";
+			params.KeyConditionExpression = "#s = :status";
 			params.ExpressionAttributeNames = {
-				"#s": "active",
+				"#s": "status",
 			};
 			params.ExpressionAttributeValues = {
-				":active": filters.active,
+				":status": filters.status,
 			};
 		}
 		let command;
-		if (filters.active) {
+		if (filters.status) {
 			command = new QueryCommand(params);
 		} else {
 			command = new ScanCommand(params);
@@ -187,4 +187,3 @@ export const itemExits = async (tableName, name) => {
 
 	return queryResult.Items && queryResult.Items.length > 0;
 };
-
