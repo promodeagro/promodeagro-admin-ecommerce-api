@@ -13,7 +13,7 @@ const client = new DynamoDBClient({ region: "us-east-1" });
 const docClient = DynamoDBDocumentClient.from(client);
 
 export async function save(tableName, item) {
-	const timestamp = new Date().toISOString();
+	const timestamp = new Date();
 	item = { ...item, createdAt: timestamp, updatedAt: timestamp };
 	const params = {
 		TableName: tableName,
@@ -37,7 +37,41 @@ export async function findAllFilter(tableName, filters) {
 				  }
 				: undefined,
 		};
-		if (filters.status) {
+		if (filters.status === "delivered") {
+			let d = filters.date;
+			let query;
+			let now = new Date();
+			if (d == undefined) {
+				now.setDate(now.getDate() - 7);
+				query = ` AND createdAt < :date`;
+				console.log(query);
+			} else if (d == "older") {
+				now.setMonth(now.getMonth() - 3);
+				query = ` AND createdAt < :date`;
+			} else if (d == "2m") {
+				now.setMonth(now.getMonth() - 2);
+				query = ` AND createdAt < :date`;
+			} else if (d == "1m") {
+				now.setMonth(now.getMonth() - 1);
+				query = ` AND createdAt < :date`;
+			} else if (d == "14") {
+				now.setDate(now.getDate() - 14);
+				query = ` AND createdAt < :date`;
+			} else if (d == "7") {
+				now.setDate(now.getDate() - 7);
+				query = ` AND createdAt < :date`;
+			}
+			params.IndexName = "status-createdAt-index";
+			params.ScanIndexForward = false;
+			params.KeyConditionExpression = "#s = :status" + query;
+			params.ExpressionAttributeNames = {
+				"#s": "status",
+			};
+			params.ExpressionAttributeValues = {
+				":status": filters.status,
+				":date": now.toISOString(),
+			};
+		} else if (filters.status) {
 			params.IndexName = "status-createdAt-index";
 			params.ScanIndexForward = false;
 			params.KeyConditionExpression = "#s = :status";
@@ -49,6 +83,7 @@ export async function findAllFilter(tableName, filters) {
 			};
 		}
 		let command;
+		console.log(params);
 		if (filters.status) {
 			command = new QueryCommand(params);
 		} else {

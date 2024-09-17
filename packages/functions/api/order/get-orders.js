@@ -11,6 +11,7 @@ const docClient = DynamoDBDocumentClient.from(client);
 export const handler = middy(async (event) => {
   let nextKey = event.queryStringParameters?.pageKey || undefined;
   let status = event.queryStringParameters?.status || undefined;
+  let date = event.queryStringParameters?.date || undefined;
   let search = event.queryStringParameters?.search || undefined;
   let data = {};
   if (search) {
@@ -19,6 +20,7 @@ export const handler = middy(async (event) => {
     data = await findAllFilter(Config.ORDER_TABLE, {
       nextKey,
       status,
+      date
     });
   }
   const itemsArray = Array.isArray(data.items) ? data.items : [data.items];
