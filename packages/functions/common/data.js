@@ -12,7 +12,7 @@ const client = new DynamoDBClient({ region: "us-east-1" });
 const docClient = DynamoDBDocumentClient.from(client);
 
 export async function save(tableName, item) {
-	const timestamp = new Date();
+	const timestamp = new Date().toISOString();
 	item = { ...item, createdAt: timestamp, updatedAt: timestamp };
 	const params = {
 		TableName: tableName,
