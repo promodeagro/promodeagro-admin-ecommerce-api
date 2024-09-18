@@ -7,7 +7,6 @@ import {
 	UpdateCommand,
 	QueryCommand,
 } from "@aws-sdk/lib-dynamodb";
-import { Table } from "sst/node/table";
 
 const client = new DynamoDBClient({ region: "us-east-1" });
 const docClient = DynamoDBDocumentClient.from(client);

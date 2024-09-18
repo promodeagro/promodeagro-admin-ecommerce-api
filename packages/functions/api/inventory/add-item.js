@@ -38,6 +38,7 @@ export const handler = middy(async (event) => {
 		id: uuid,
 		itemCode,
 		name: req.name,
+		search_name: req.name.toLowerCase(),
 		description: req.description,
 		category: req.category,
 		subCategory: req.subCategory,

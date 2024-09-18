@@ -124,12 +124,12 @@ export async function get(id) {
 export const searchByName = async (query) => {
 	const params = {
 		TableName: Table.productsTable.tableName,
-		FilterExpression: "contains(#name, :query)",
+		FilterExpression: "contains(#search_name, :query)",
 		ExpressionAttributeNames: {
-			"#name": "name",
+			"#search_name": "search_name",
 		},
 		ExpressionAttributeValues: {
-			":query": query,
+			":query": query.toLowerCase(),
 		},
 	};
 
@@ -258,4 +258,3 @@ async function productInventoryData(data) {
 		})
 	);
 }
-
