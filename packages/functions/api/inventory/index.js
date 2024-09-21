@@ -14,15 +14,17 @@ const client = new DynamoDBClient({ region: "us-east-1" });
 const docClient = DynamoDBDocumentClient.from(client);
 
 export async function list(nextKey) {
+	console.log("nextKey", nextKey);
 	const params = {
 		TableName: Table.productsTable.tableName,
 		Limit: 50,
 		ExclusiveStartKey: nextKey
 			? {
-					id: { S: nextKey },
+					id: nextKey,
 			  }
 			: undefined,
 	};
+	console.log(params);
 	const command = new ScanCommand(params);
 	const data = await docClient.send(command);
 	if (data.LastEvaluatedKey) {
@@ -30,7 +32,6 @@ export async function list(nextKey) {
 	} else {
 		nextKey = undefined;
 	}
-	console.log(data.Items);
 	const res = await Promise.all(
 		data.Items.map(async (item) => {
 			const inventoryData = await inventoryByProdId(item.id);
@@ -49,7 +50,6 @@ export async function list(nextKey) {
 		})
 	);
 
-	console.log(res);
 	return {
 		count: data.Count,
 		items: res,

@@ -6,7 +6,8 @@ import { bodyValidator } from "../util/bodyValidator";
 import { errorHandler } from "../util/errorHandler";
 
 const reqSchmea = z.array(
-	z.object({
+	z
+		.object({
 			id: z.string(),
 			compareAt: z.number().positive(),
 			onlineStorePrice: z.number().positive(),
@@ -32,7 +33,7 @@ export const handler = middy(async (event) => {
 					unitPrices: calculateUnitPrices(
 						product.unit,
 						item.onlineStorePrice,
-						item.compareAt - item.onlineStorePrice
+						item.compareAt
 					),
 				}
 			);
@@ -51,22 +52,22 @@ function calculateUnitPrices(units, price, savings) {
 	const diffUnits = [250, 500, 1000];
 	if (units === "grams") {
 		for (const unit of diffUnits) {
-			const unitPrice = Math.round((price / 1000) * unit);
-			const unitSavings = Math.round((savings / 1000) * unit);
-			const discountedPrice = unitPrice - unitSavings;
+			const unitPrice = Math.round((unit / 1000) * price);
+			const unitCompareAt = Math.round((unit / 1000) * savings);
+			const discountedSavings = Math.abs(unitPrice - unitCompareAt);
 			prices.push({
 				qty: unit,
-				mrp: unitPrice,
-				savings: unitSavings,
-				price: discountedPrice,
+				mrp: unitCompareAt,
+				savings: discountedSavings,
+				price: unitPrice,
 			});
 		}
 	} else {
 		prices.push({
 			qty: 1,
 			price: price,
-			savings: savings,
-			discountedPrice: price - savings,
+			savings: Math.abs(price - savings),
+			discountedPrice: Math.abs(price - savings),
 		});
 	}
 	return prices;
