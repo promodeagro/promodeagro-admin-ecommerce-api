@@ -42,23 +42,23 @@ export async function findAllFilter(tableName, filters) {
 			let now = new Date();
 			if (d == undefined) {
 				now.setDate(now.getDate() - 7);
-				query = ` AND createdAt < :date`;
+				query = ` AND createdAt > :date`;
 				console.log(query);
 			} else if (d == "older") {
 				now.setMonth(now.getMonth() - 3);
-				query = ` AND createdAt < :date`;
+				query = ` AND createdAt > :date`;
 			} else if (d == "2m") {
 				now.setMonth(now.getMonth() - 2);
-				query = ` AND createdAt < :date`;
+				query = ` AND createdAt > :date`;
 			} else if (d == "1m") {
 				now.setMonth(now.getMonth() - 1);
-				query = ` AND createdAt < :date`;
+				query = ` AND createdAt > :date`;
 			} else if (d == "14") {
 				now.setDate(now.getDate() - 14);
-				query = ` AND createdAt < :date`;
+				query = ` AND createdAt > :date`;
 			} else if (d == "7") {
 				now.setDate(now.getDate() - 7);
-				query = ` AND createdAt < :date`;
+				query = ` AND createdAt > :date`;
 			}
 			params.IndexName = "status-createdAt-index";
 			params.ScanIndexForward = false;
@@ -207,13 +207,13 @@ export async function productExistsByName(tableName, productName) {
 export const itemExits = async (tableName, name) => {
 	const queryParams = {
 		TableName: tableName,
-		IndexName: "nameIndex",
-		KeyConditionExpression: "#itemName = :name",
+		IndexName: "search_nameIndex",
+		KeyConditionExpression: "#itemName = :search_name",
 		ExpressionAttributeNames: {
-			"#itemName": "name",
+			"#itemName": "search_name",
 		},
 		ExpressionAttributeValues: {
-			":name": name,
+			":search_name": name.toLowerCase(),
 		},
 	};
 	const queryCommand = new QueryCommand(queryParams);

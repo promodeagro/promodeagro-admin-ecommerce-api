@@ -68,11 +68,13 @@ export function API({ stack }: StackContext) {
 			id: "string",
 			name: "string",
 			category: "string",
+			search_name: "string"
 		},
 		primaryIndex: { partitionKey: "id" },
 		globalIndexes: {
 			nameIndex: { partitionKey: "name" },
 			categoryIndex: { partitionKey: "category" },
+			search_nameIndex: { partitionKey: "search_name" },
 		},
 	});
 
@@ -92,7 +94,19 @@ export function API({ stack }: StackContext) {
 			primaryIndex: { partitionKey: "id" },
 		}
 	);
-	const tables = [inventoryTable, inventoryModificationTable, productsTable];
+
+	const inventoryStatsTable = new Table(stack, "inventoryStatsTable", {
+		fields: {
+			id: "string",
+		},
+		primaryIndex: { partitionKey: "id" },
+	});
+	const tables = [
+		inventoryTable,
+		inventoryModificationTable,
+		productsTable,
+		inventoryStatsTable,
+	];
 
 	const api = new Api(stack, "api", {
 		// authorizers: {

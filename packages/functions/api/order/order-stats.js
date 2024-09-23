@@ -1,4 +1,4 @@
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBClient, DescribeTableCommand } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, ScanCommand } from "@aws-sdk/lib-dynamodb";
 import { Config } from "sst/node/config";
 
@@ -14,11 +14,13 @@ export const handler = async (event) => {
 	const [
 		totalOrderCount,
 		completedOrderCount,
+		confirmedOrderCount,
 		cancelledOrderCount,
 		refundedOrderCount,
 	] = await Promise.all([
 		totalOrders(),
-		orderStatsByStatus("completed").catch(() => fallbackValue),
+		orderStatsByStatus("delivered").catch(() => fallbackValue),
+		orderStatsByStatus("order placed").catch(() => fallbackValue),
 		orderStatsByStatus("cancelled").catch(() => fallbackValue),
 		orderStatsByStatus("refunded").catch(() => fallbackValue),
 	]);
@@ -27,7 +29,7 @@ export const handler = async (event) => {
 		body: JSON.stringify({
 			totalOrderCount: totalOrderCount,
 			completedOrderCount: completedOrderCount,
-			confirmedOrderCount: 0, //--TODO--
+			confirmedOrderCount: confirmedOrderCount, 
 			cancelledOrderCount: cancelledOrderCount,
 			refundedOrderCount: refundedOrderCount,
 		}),
@@ -35,29 +37,35 @@ export const handler = async (event) => {
 };
 
 const totalOrders = async () => {
-	let itemCount = 0;
-	let lastEvaluatedKey = undefined;
+	//Best approach for table <2.5gb
+	const command = new DescribeTableCommand({ TableName: orderTable });
+	const response = await docClient.send(command);
+	return response.Table.ItemCount;
 
-	do {
-		const params = {
-			TableName: orderTable,
-			Select: "COUNT",
-			ExclusiveStartKey: lastEvaluatedKey,
-		};
+	//Best approach for any size table
+	// let itemCount = 0;
+	// let lastEvaluatedKey = undefined;
 
-		try {
-			const command = new ScanCommand(params);
-			const data = await docClient.send(command);
+	// do {
+	// 	const params = {
+	// 		TableName: orderTable,
+	// 		Select: "COUNT",
+	// 		ExclusiveStartKey: lastEvaluatedKey,
+	// 	};
 
-			itemCount += data.Count;
-			lastEvaluatedKey = data.LastEvaluatedKey;
-		} catch (error) {
-			console.error("Error scanning table:", error);
-			throw error;
-		}
-	} while (lastEvaluatedKey);
+	// 	try {
+	// 		const command = new ScanCommand(params);
+	// 		const data = await docClient.send(command);
 
-	return itemCount;
+	// 		itemCount += data.Count;
+	// 		lastEvaluatedKey = data.LastEvaluatedKey;
+	// 	} catch (error) {
+	// 		console.error("Error scanning table:", error);
+	// 		throw error;
+	// 	}
+	// } while (lastEvaluatedKey);
+
+	// return itemCount;
 };
 
 const orderStatsByStatus = async (status) => {
