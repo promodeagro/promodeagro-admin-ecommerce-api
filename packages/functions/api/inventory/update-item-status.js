@@ -5,17 +5,23 @@ import middy from "@middy/core";
 import { bodyValidator } from "../util/bodyValidator";
 import { errorHandler } from "../util/errorHandler";
 
-const updateActiveSchema = z.object({
-	id: z.string(),
-	active: z.boolean(),
-});
+const updateActiveSchema = z.array(
+	z.object({
+		id: z.string(),
+		active: z.boolean(),
+	})
+);
 
 export const handler = middy(async (event) => {
-	const { id, active } = JSON.parse(event.body);
-	await update(
-		Table.productsTable.tableName,
-		{ id: id },
-		{ availability: active }
+	const req = JSON.parse(event.body);
+	await Promise.all(
+		req.map(async (item) => {
+			update(
+				Table.productsTable.tableName,
+				{ id: item.id },
+				{ availability: item.active }
+			);
+		})
 	);
 	return {
 		statusCode: 200,

@@ -6,20 +6,62 @@ import middy from "@middy/core";
 import { bodyValidator } from "../util/bodyValidator";
 import { errorHandler } from "../util/errorHandler";
 
-const inventoryItemSchema = z.object({
-	name: z.string(),
-	description: z.string(),
-	category: z.string(),
-	subCategory: z.string(),
-	units: z.union([z.literal("pieces"), z.literal("grams")], {
-		message: "units must be either 'pieces' or 'grams'",
-	}),
-	purchasingPrice: z.number().positive(),
-	msp: z.number().positive(),
-	stockQuantity: z.number().int().nonnegative(),
-	expiry: z.string().datetime(),
-	images: z.array(z.string().url()).min(1, "at least 1 image is required"),
-});
+const categoriesWithSubcategories = {
+	"Fresh Vegetables": [
+		"Daily Vegetables",
+		"Leafy Vegetables",
+		"Exotic Vegetables",
+	],
+	"Fresh Fruits": ["Daily Fruits", "Exotic Fruits", "Dry Fruits"],
+	"Eggs Meat & Fish": ["Eggs", "Chicken", "Mutton", "Fish"],
+	Dairy: ["Milk", "Butter & Ghee", "Paneer & Khowa"],
+	Groceries: ["Cooking Oil", "Rice", "Daal", "Spices", "Snacks"],
+	"Bengali Special": [
+		"Bengali Vegetables",
+		"Bengali Groceries",
+		"Bengali Home Needs",
+	],
+};
+
+const inventoryItemSchema = z
+	.object({
+		name: z.string(),
+		description: z.string(),
+		category: z.enum([
+			"Fresh Vegetables",
+			"Fresh Fruits",
+			"Eggs Meat & Fish",
+			"Dairy",
+			"Groceries",
+			"Bengali Special",
+		]),
+		subCategory: z.string(),
+		units: z.union(
+			[z.literal("pieces"), z.literal("grams"), z.literal("kgs")],
+			{
+				message: "units must be either 'pieces' or 'grams'",
+			}
+		),
+		purchasingPrice: z.number().positive(),
+		msp: z.number().positive(),
+		stockQuantity: z.number().int().nonnegative(),
+		expiry: z.string().datetime().optional(),
+		images: z
+			.array(z.string().url())
+			.min(1, "at least 1 image is required"),
+	})
+	.superRefine((data, ctx) => {
+		const validSubCategories = categoriesWithSubcategories[data.category];
+		if (!validSubCategories.includes(data.subCategory)) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: `Invalid subcategory for ${
+					data.category
+				}. Valid subcategories are: ${validSubCategories.join(", ")}`,
+				path: ["subCategory"],
+			});
+		}
+	});
 
 export const handler = middy(async (event) => {
 	const req = JSON.parse(event.body);

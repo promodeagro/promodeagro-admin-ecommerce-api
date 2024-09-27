@@ -104,7 +104,7 @@ export async function findAllFilter(tableName, filters) {
 	}
 }
 
-export async function findAll(tableName, nextKey) {
+export async function findAll(tableName, nextKey, indexName) {
 	try {
 		const params = {
 			TableName: tableName,
@@ -115,6 +115,10 @@ export async function findAll(tableName, nextKey) {
 				  }
 				: undefined,
 		};
+		if (indexName) {
+			params.IndexName = indexName;
+			params.ScanIndexForward = false
+		}
 		const command = new ScanCommand(params);
 		const data = await docClient.send(command);
 		if (data.LastEvaluatedKey) {

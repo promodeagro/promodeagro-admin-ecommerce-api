@@ -63,6 +63,18 @@ This document provides detailed information about the available API endpoints, i
 - **Path Parameters:** None
 - **Query Parameters:** None
 - **Request Body:** JSON object containing the status update.
+    ```json
+    [
+      {
+        "id": "1b69ac5b-c12b-43fa-a896-c90503c64e6f",
+        "active": false
+    },
+    {
+        "id": "e41d508a-3c43-4672-b086-5883f6bb2927",
+        "active": true
+    }
+  ]
+    ```
 
 #### 6. Update Inventory Item Price
 - **HTTP Verb:** PUT

@@ -6,6 +6,7 @@ import {
 	GetCommand,
 	UpdateCommand,
 	QueryCommand,
+	DeleteCommand,
 } from "@aws-sdk/lib-dynamodb";
 import { Table } from "sst/node/table";
 import { findById } from "../../common/data";
@@ -257,4 +258,16 @@ async function productInventoryData(data) {
 			};
 		})
 	);
+}
+
+export async function deleteItemById(tableName, id) {
+	const params = {
+		TableName: tableName,
+		Key: {
+			id: id,
+		},
+	};
+	const command = new DeleteCommand(params);
+	const response = await client.send(command);
+	return response;
 }

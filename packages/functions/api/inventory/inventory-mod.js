@@ -51,7 +51,8 @@ export const list = middy(async (event) => {
 	let nextKey = event.queryStringParameters?.pageKey || undefined;
 	const data = await findAll(
 		Table.inventoryModificationTable.tableName,
-		nextKey
+		nextKey,
+		"createdAtIndex"
 	);
 	const res = data.items.map((item) => {
 		return {
@@ -61,6 +62,8 @@ export const list = middy(async (event) => {
 			date: item.date,
 			// adjustedBy -- TODO
 			location: item.location,
+			createdAt: item.createdAt,
+			updatedAt: item.updatedAt,
 			items: JSON.parse(item.items),
 		};
 	});

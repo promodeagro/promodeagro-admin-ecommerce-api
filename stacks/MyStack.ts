@@ -90,8 +90,13 @@ export function API({ stack }: StackContext) {
 				adjustedBy: "string",
 				location: "string",
 				items: "string",
+				createdAt: "string",
+				updatedAt: "string"
 			},
 			primaryIndex: { partitionKey: "id" },
+			globalIndexes: {
+				createdAtIndex: { partitionKey: "createdAt" }
+			}
 		}
 	);
 
@@ -238,6 +243,12 @@ export function API({ stack }: StackContext) {
 				function: {
 					handler:
 						"packages/functions/api/inventory/inventory-mod.list",
+				},
+			},
+			"DELETE /inventory/{id}": {
+				function: {
+					handler:
+						"packages/functions/api/inventory/delete-item.handler",
 				},
 			},
 			"GET /uploadUrl": {
