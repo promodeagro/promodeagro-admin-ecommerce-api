@@ -6,7 +6,7 @@ import middy from "@middy/core";
 import { bodyValidator } from "../util/bodyValidator";
 import { errorHandler } from "../util/errorHandler";
 
-const categoriesWithSubcategories = {
+export const categoriesWithSubcategories = {
 	"Fresh Vegetables": [
 		"Daily Vegetables",
 		"Leafy Vegetables",
@@ -36,12 +36,7 @@ const inventoryItemSchema = z
 			"Bengali Special",
 		]),
 		subCategory: z.string(),
-		units: z.union(
-			[z.literal("pieces"), z.literal("grams"), z.literal("kgs")],
-			{
-				message: "units must be either 'pieces' or 'grams'",
-			}
-		),
+		units: z.enum(["pieces", "grams", "kgs", "litres"]),
 		purchasingPrice: z.number().positive(),
 		msp: z.number().positive(),
 		stockQuantity: z.number().int().nonnegative(),

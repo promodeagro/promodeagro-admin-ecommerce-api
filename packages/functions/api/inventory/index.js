@@ -7,6 +7,7 @@ import {
 	UpdateCommand,
 	QueryCommand,
 	DeleteCommand,
+	TransactWriteCommand,
 } from "@aws-sdk/lib-dynamodb";
 import { Table } from "sst/node/table";
 import { findById } from "../../common/data";
@@ -73,7 +74,7 @@ async function inventoryByProdId(productId) {
 	return response.Items[0];
 }
 
-export const updateItem = async (item) => {
+export const updateItemPricing = async (item) => {
 	const params = {
 		TableName: Table.inventoryTable.tableName,
 		Key: { id: item.itemCode },
@@ -271,3 +272,59 @@ export async function deleteItemById(tableName, id) {
 	const response = await client.send(command);
 	return response;
 }
+
+export const updateItem = async (id, item) => {
+	const product = await findById(Table.productsTable.tableName, id);
+	const now = new Date().toISOString(); // Current timestamp in ISO format
+	const transactParams = {
+		TransactItems: [
+			{
+				Update: {
+					TableName: Table.productsTable.tableName,
+					Key: { id: id },
+					UpdateExpression:
+						"SET #nm = :name, #snm = :search_name, #desc = :description, #cat = :category, #subcat = :subCategory, #unt = :unit, #upd = :updatedAt",
+					ExpressionAttributeNames: {
+						"#nm": "name",
+						"#snm": "search_name",
+						"#desc": "description",
+						"#cat": "category",
+						"#subcat": "subCategory",
+						"#unt": "unit",
+						"#upd": "updatedAt",
+					},
+					ExpressionAttributeValues: {
+						":name": item.name,
+						":search_name": item.name.toLowerCase(),
+						":description": item.description,
+						":category": item.category,
+						":subCategory": item.subCategory,
+						":unit": item.units,
+						":updatedAt": now,
+					},
+					ReturnValues: "ALL_NEW",
+				},
+			},
+			{
+				Update: {
+					TableName: Table.inventoryTable.tableName,
+					Key: { id: product.itemCode },
+					UpdateExpression: "SET #exp = :expiry, #upd = :updatedAt",
+					ExpressionAttributeNames: {
+						"#exp": "expiry",
+						"#upd": "updatedAt",
+					},
+					ExpressionAttributeValues: {
+						":expiry": item.expiry || null,
+						":updatedAt": now,
+					},
+					ReturnValues: "ALL_NEW",
+				},
+			},
+		],
+	};
+	const result = await docClient.send(
+		new TransactWriteCommand(transactParams)
+	);
+	console.log(JSON.stringify(result, null, 2));
+};

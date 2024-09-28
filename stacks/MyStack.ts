@@ -251,6 +251,12 @@ export function API({ stack }: StackContext) {
 						"packages/functions/api/inventory/delete-item.handler",
 				},
 			},
+			"PUT /inventory/{id}": {
+				function: {
+					handler:
+						"packages/functions/api/inventory/update-item.handler",
+				},
+			},
 			"GET /uploadUrl": {
 				function: {
 					handler:

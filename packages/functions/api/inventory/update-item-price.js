@@ -9,8 +9,7 @@ const reqSchmea = z.array(
 	z
 		.object({
 			id: z.string(),
-			compareAt: z.
-			number().positive(),
+			compareAt: z.number().positive(),
 			onlineStorePrice: z.number().positive(),
 		})
 		.refine((ob) => ob.compareAt > ob.onlineStorePrice, {

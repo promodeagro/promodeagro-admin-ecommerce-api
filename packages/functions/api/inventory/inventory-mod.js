@@ -4,7 +4,7 @@ import { Table } from "sst/node/table";
 import middy from "@middy/core";
 import { bodyValidator } from "../util/bodyValidator";
 import { errorHandler } from "../util/errorHandler";
-import { updateItem } from ".";
+import { updateItemPricing } from ".";
 
 const ItemSchema = z.object({
 	id: z.string(),
@@ -38,7 +38,7 @@ export const add = middy(async (event) => {
 		items: JSON.stringify(req.items),
 	};
 	await save(Table.inventoryModificationTable.tableName, item);
-	await Promise.all(req.items.map((item) => updateItem(item)));
+	await Promise.all(req.items.map((item) => updateItemPricing(item)));
 	return {
 		statusCode: 200,
 		body: JSON.stringify({ message: "Item added successfully" }),

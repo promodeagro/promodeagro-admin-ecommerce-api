@@ -16,7 +16,7 @@ export const handler = middy(async (event) => {
 	const req = JSON.parse(event.body);
 	await Promise.all(
 		req.map(async (item) => {
-			update(
+			return update(
 				Table.productsTable.tableName,
 				{ id: item.id },
 				{ availability: item.active }

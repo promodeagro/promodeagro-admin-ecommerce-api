@@ -76,6 +76,24 @@ This document provides detailed information about the available API endpoints, i
   ]
     ```
 
+#### 6. Update Inventory Item/Product
+- **HTTP Verb:** PUT
+- **Route:** `/inventory/{id}`
+- **Description:** Updates the details of a specific inventory item.
+- **Path Parameters:** `{id}`
+- **Query Parameters:** None
+- **Request Body:**
+    ```json
+    {
+      "name": "Cauliflower",
+      "description": "Fresh cauliflower from the farm",
+      "category": "Fresh Vegetables",
+      "subCategory": "Vegetables",
+      "units": "pieces",
+      "expiry": "2024-12-31T23:59:59Z"
+    }
+    ```
+
 #### 6. Update Inventory Item Price
 - **HTTP Verb:** PUT
 - **Route:** `/inventory/price`
