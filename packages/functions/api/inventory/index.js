@@ -16,7 +16,6 @@ const client = new DynamoDBClient({ region: "us-east-1" });
 const docClient = DynamoDBDocumentClient.from(client);
 
 export async function list(nextKey) {
-	console.log("nextKey", nextKey);
 	const params = {
 		TableName: Table.productsTable.tableName,
 		Limit: 50,
@@ -198,18 +197,28 @@ export const searchByItemCode = async (query) => {
 	};
 };
 
-export const inventoryByCategory = async (nextKey, category, active) => {
+export const inventoryByCategory = async (nextKey, category,subCategory, active) => {
 	const params = {
 		TableName: Table.productsTable.tableName,
 		ExpressionAttributeNames: {},
 		ExpressionAttributeValues: {},
 		FilterExpression: "",
 	};
-
+	const addCondition = (condition) => {
+		if (params.FilterExpression) {
+		  params.FilterExpression += " AND ";
+		}
+		params.FilterExpression += condition;
+	  };
 	if (category) {
 		params.ExpressionAttributeNames["#category"] = "category";
 		params.ExpressionAttributeValues[":category"] = category;
-		params.FilterExpression += "#category = :category";
+		addCondition("#category = :category");
+	}
+	if (subCategory) {
+		params.ExpressionAttributeNames["#subCategory"] = "subCategory";
+		params.ExpressionAttributeValues[":subCategory"] = subCategory;
+		addCondition("#subCategory = :subCategory");
 	}
 
 	if (active) {
