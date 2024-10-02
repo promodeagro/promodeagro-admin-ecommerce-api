@@ -8,11 +8,12 @@ import {
 	QueryCommand,
 	DeleteCommand,
 	TransactWriteCommand,
+	BatchGetCommand,
 } from "@aws-sdk/lib-dynamodb";
 import { Table } from "sst/node/table";
 import { findById } from "../../common/data";
 
-const client = new DynamoDBClient({ region: "us-east-1" });
+const client = new DynamoDBClient({ region: "ap-south-1" });
 const docClient = DynamoDBDocumentClient.from(client);
 
 export async function list(nextKey) {
@@ -35,7 +36,9 @@ export async function list(nextKey) {
 	}
 	const res = await Promise.all(
 		data.Items.map(async (item) => {
-			const inventoryData = await inventoryByProdId(item.id);
+			console.log("1");
+			const inventoryData = inventoryByProdId(item.id);
+			console.log("2");
 			const itemCode = inventoryData.id;
 			delete inventoryData.id;
 			return {
@@ -50,7 +53,7 @@ export async function list(nextKey) {
 			};
 		})
 	);
-
+	console.log(res);
 	return {
 		count: data.Count,
 		items: res,
@@ -197,7 +200,12 @@ export const searchByItemCode = async (query) => {
 	};
 };
 
-export const inventoryByCategory = async (nextKey, category,subCategory, active) => {
+export const inventoryByCategory = async (
+	nextKey,
+	category,
+	subCategory,
+	active
+) => {
 	const params = {
 		TableName: Table.productsTable.tableName,
 		ExpressionAttributeNames: {},
@@ -206,10 +214,10 @@ export const inventoryByCategory = async (nextKey, category,subCategory, active)
 	};
 	const addCondition = (condition) => {
 		if (params.FilterExpression) {
-		  params.FilterExpression += " AND ";
+			params.FilterExpression += " AND ";
 		}
 		params.FilterExpression += condition;
-	  };
+	};
 	if (category) {
 		params.ExpressionAttributeNames["#category"] = "category";
 		params.ExpressionAttributeValues[":category"] = category;
@@ -337,3 +345,33 @@ export const updateItem = async (id, item) => {
 	);
 	console.log(JSON.stringify(result, null, 2));
 };
+
+// export const updateProductStatus = async (req) => {
+// 	const params = {
+// 		RequestItems: {
+// 			[Table.productsTable.tableName]: {
+// 				Keys: req.map((item) => ({ id: item.id })),
+// 			},
+// 		},
+// 	};
+// 	const command = new BatchGetCommand(params);
+// 	const data = await docClient.send(command);
+// 	const products = Object.values(data.Responses)[0];
+// 	const invalid = [];
+// 	const putReq = products.filter((item) => {
+// 			console.log(JSON.stringify(item,null,2));
+// 			if (item.onlineStorePrice == undefined) {
+// 				invalid.push(item.id);
+// 				return false;
+// 			}
+// 			return true;
+// 		})
+// 		.map((item) => {
+// 			return {
+// 				Put: {
+// 					Item: item,
+// 				},
+// 			};
+// 		});
+// 	console.log(JSON.stringify(putReq, null, 2));
+// };

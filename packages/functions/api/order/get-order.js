@@ -1,8 +1,7 @@
 import { findById } from "../../common/data";
-import { Config } from "sst/node/config";
+import { Table } from "sst/node/table";
 import middy from "@middy/core";
 import { errorHandler } from "../util/errorHandler";
-import { subtle } from "crypto";
 
 export const handler = middy(async (event) => {
 	let id = event.pathParameters?.id;
@@ -12,12 +11,13 @@ export const handler = middy(async (event) => {
 			body: JSON.stringify({ message: "id is required" }),
 		};
 	}
-	const orderData = await findById(Config.ORDER_TABLE, id);
-	if(!orderData){
+	const orderData = await findById(Table.OrdersTable.tableName, id);
+	if (!orderData) {
 		return {
 			statusCode: 200,
 			body: JSON.stringify({ message: "order doesnt exist" }),
-		};	}
+		};
+	}
 	const response = {
 		orderId: orderData.id,
 		status: orderData.status,

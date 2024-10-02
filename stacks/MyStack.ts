@@ -1,9 +1,11 @@
 import * as iam from "aws-cdk-lib/aws-iam";
-import { Bucket, Table, StackContext, Api, Config, use } from "sst/constructs";
+import { Bucket, Table, StackContext, Api, use } from "sst/constructs";
 import { AuthStack } from "./AuthStack";
-import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
-export function API({ stack }: StackContext) {
+export function API({ app, stack }: StackContext) {
+	const isProd = app.stage == "prod"
+
 	const mediaBucket = new Bucket(stack, "mediaBucket", {
+		name: isProd ? "promodeagro-media-bucket" : "dev-promodeagro-media-bucket",
 		cors: [
 			{
 				allowedOrigins: ["*"],
@@ -12,6 +14,7 @@ export function API({ stack }: StackContext) {
 			},
 		],
 	});
+
 
 	const getObjectPolicy = new iam.PolicyStatement({
 		actions: ["s3:GetObject"],
@@ -22,32 +25,82 @@ export function API({ stack }: StackContext) {
 
 	mediaBucket.cdk.bucket.addToResourcePolicy(getObjectPolicy);
 
-	const orderTable = dynamodb.Table.fromTableArn(
-		stack,
-		"orderTable",
-		"arn:aws:dynamodb:us-east-1:851725323791:table/Orders"
-	);
-	const ORDER_TABLE = new Config.Parameter(stack, "ORDER_TABLE", {
-		value: orderTable.tableName,
+	const usersTable = new Table(stack, "Users", {
+		fields: {
+			UserId: "string",
+			MobileNumber: "string",
+			name: "string"
+		},
+		primaryIndex: { partitionKey: "UserId" },
+		globalIndexes: {
+			[`MobileNumber-index`]: { partitionKey: "MobileNumber" },
+			[`Name-index`]: { partitionKey: "name" },
+
+		},
 	});
 
-	const AddressesTable = dynamodb.Table.fromTableArn(
-		stack,
-		"AddressesTable",
-		"arn:aws:dynamodb:us-east-1:851725323791:table/Addresses"
-	);
-	const ADDRESS_TABLE = new Config.Parameter(stack, "ADDRESS_TABLE", {
-		value: AddressesTable.tableName,
+	const addressesTable = new Table(stack, "Addresses", {
+		fields: {
+			userId: "string",
+		},
+		primaryIndex: { partitionKey: "userId" },
 	});
 
-	const usersTable = dynamodb.Table.fromTableArn(
-		stack,
-		"usersTable",
-		"arn:aws:dynamodb:us-east-1:851725323791:table/Users"
-	);
+	const cartTable = new Table(stack, "CartItems", {
+		fields: {
+			UserId: "string",
+			ProductId: "string",
+		},
+		primaryIndex: { partitionKey: "UserId", sortKey: "ProductId" },
+	});
 
-	const USERS_TABLE = new Config.Parameter(stack, "USERS_TABLE", {
-		value: usersTable.tableName,
+	const deliverySlotsTable = new Table(stack, "DeliveryTimeSlots", {
+		fields: {
+			slotId: "string",
+		},
+		primaryIndex: { partitionKey: "slotId" },
+	});
+
+	// Reviews Table
+	const reviewsTable = new Table(stack, "UserReviews", {
+		fields: {
+			reviewId: "string",
+			productId: "string",
+		},
+		primaryIndex: { partitionKey: "reviewId" },
+		globalIndexes: {
+			[`productId-index`]: { partitionKey: "productId" },
+		},
+	});
+
+	const OrdersTable = new Table(stack, "OrdersTable", {
+		fields: {
+			id: "string",
+			createdAt: "string",
+			status: "string",
+			userId: "string",
+		},
+		primaryIndex: { partitionKey: "id" },
+		globalIndexes: {
+			idCreatedAtIndex: { partitionKey: "id", sortKey: "createdAt" },
+			statusCreatedAtIndex: { partitionKey: "status", sortKey: "createdAt" },
+			userIdIndex: { partitionKey: "userId" },
+		},
+	});
+
+	const ProductWishLists = new Table(stack, "ProductWishLists", {
+		fields: {
+			UserId: "string",
+			ProductId: "string"
+		},
+		primaryIndex: { partitionKey: "UserId", sortKey: "ProductId" }
+	});
+
+	const ProductsOffers = new Table(stack, "ProductsOffers", {
+		fields: {
+			UserId: "string",
+		},
+		primaryIndex: { partitionKey: "UserId" },
 	});
 
 	const cognito = use(AuthStack);
@@ -68,12 +121,14 @@ export function API({ stack }: StackContext) {
 			id: "string",
 			name: "string",
 			category: "string",
+			subCategory: "string",
 			search_name: "string"
 		},
 		primaryIndex: { partitionKey: "id" },
 		globalIndexes: {
 			nameIndex: { partitionKey: "name" },
 			categoryIndex: { partitionKey: "category" },
+			subCategoryIndex: { partitionKey: "subCategory" },
 			search_nameIndex: { partitionKey: "search_name" },
 		},
 	});
@@ -111,10 +166,17 @@ export function API({ stack }: StackContext) {
 		inventoryModificationTable,
 		productsTable,
 		inventoryStatsTable,
+		OrdersTable,
+		addressesTable,
+		usersTable
 	];
 
 	const api = new Api(stack, "api", {
-		// authorizers: {
+		customDomain: isProd ?
+			{
+				domainName: "api.admin.promodeagro.com",
+				hostedZone: "promodeagro.com"
+			} : undefined,
 		// 	UserPoolAuthorizer: {
 		// 		type: "user_pool",
 		// 		userPool: {
@@ -127,7 +189,6 @@ export function API({ stack }: StackContext) {
 			function: {
 				bind: tables,
 			},
-			// authorizer: "UserPoolAuthorizer",
 		},
 		routes: {
 			"POST /auth/signup": {
@@ -197,66 +258,16 @@ export function API({ stack }: StackContext) {
 					permissions: ["cognito-idp:AdminInitiateAuth"],
 				},
 			},
-			"GET /inventory": {
-				function: {
-					handler:
-						"packages/functions/api/inventory/get-items.handler",
-				},
-			},
-			"GET /inventory/{id}": {
-				function: {
-					handler:
-						"packages/functions/api/inventory/get-item.handler",
-				},
-			},
-			"GET /inventory/stats": {
-				function: {
-					handler:
-						"packages/functions/api/inventory/inventory-stats.handler",
-				},
-			},
-			"POST /inventory": {
-				function: {
-					handler:
-						"packages/functions/api/inventory/add-item.handler",
-				},
-			},
-			"PUT /inventory/status": {
-				function: {
-					handler:
-						"packages/functions/api/inventory/update-item-status.handler",
-				},
-			},
-			"PUT /inventory/price": {
-				function: {
-					handler:
-						"packages/functions/api/inventory/update-item-price.handler",
-				},
-			},
-			"POST /inventory/adjust": {
-				function: {
-					handler:
-						"packages/functions/api/inventory/inventory-mod.add",
-				},
-			},
-			"GET /inventory/adjust": {
-				function: {
-					handler:
-						"packages/functions/api/inventory/inventory-mod.list",
-				},
-			},
-			"DELETE /inventory/{id}": {
-				function: {
-					handler:
-						"packages/functions/api/inventory/delete-item.handler",
-				},
-			},
-			"PUT /inventory/{id}": {
-				function: {
-					handler:
-						"packages/functions/api/inventory/update-item.handler",
-				},
-			},
+			"GET /inventory": "packages/functions/api/inventory/get-items.handler",
+			"GET /inventory/{id}": "packages/functions/api/inventory/get-item.handler",
+			"GET /inventory/stats": "packages/functions/api/inventory/inventory-stats.handler",
+			"POST /inventory": "packages/functions/api/inventory/add-item.handler",
+			"PUT /inventory/status": "packages/functions/api/inventory/update-item-status.handler",
+			"PUT /inventory/price": "packages/functions/api/inventory/update-item-price.handler",
+			"POST /inventory/adjust": "packages/functions/api/inventory/inventory-mod.add",
+			"GET /inventory/adjust": "packages/functions/api/inventory/inventory-mod.list",
+			"DELETE /inventory/{id}": "packages/functions/api/inventory/delete-item.handler",
+			"PUT /inventory/{id}": "packages/functions/api/inventory/update-item.handler",
 			"GET /uploadUrl": {
 				function: {
 					handler:
@@ -264,43 +275,17 @@ export function API({ stack }: StackContext) {
 					bind: [mediaBucket],
 				},
 			},
-			"GET /order": {
-				function: {
-					handler: "packages/functions/api/order/get-orders.handler",
-					permissions: [orderTable],
-					bind: [ORDER_TABLE],
-				},
-			},
-			"GET /order-filter": {
+			"DELETE /deleteImage": {
 				function: {
 					handler:
-						"packages/functions/api/order/order-filter.handler",
-					permissions: [orderTable, AddressesTable],
-					bind: [ORDER_TABLE, ADDRESS_TABLE],
+						"packages/functions/api/media/getPreSignedS3url.deleteImage",
+					bind: [mediaBucket],
 				},
 			},
-			"GET /order/{id}": {
-				function: {
-					handler: "packages/functions/api/order/get-order.handler",
-					permissions: [orderTable, usersTable],
-					bind: [ORDER_TABLE, USERS_TABLE],
-				},
-			},
-			"GET /order/stats": {
-				function: {
-					handler: "packages/functions/api/order/order-stats.handler",
-					permissions: [orderTable],
-					bind: [ORDER_TABLE],
-				},
-			},
-			"PUT /order/proceed": {
-				function: {
-					handler:
-						"packages/functions/api/order/proceed-order.handler",
-					permissions: [orderTable, "states:SendTaskSuccess"],
-					bind: [ORDER_TABLE],
-				},
-			},
+			"GET /order": "packages/functions/api/order/get-orders.handler",
+			"GET /order/{id}": "packages/functions/api/order/get-order.handler",
+			"GET /order/stats": "packages/functions/api/order/order-stats.handler",
+			"PUT /order/proceed": "packages/functions/api/order/proceed-order.handler",
 		},
 	});
 
@@ -310,7 +295,6 @@ export function API({ stack }: StackContext) {
 
 	return {
 		api,
-		ORDER_TABLE,
-		orderTable,
+		OrdersTable
 	};
 }

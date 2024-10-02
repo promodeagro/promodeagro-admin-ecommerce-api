@@ -1,7 +1,7 @@
 import crypto from "crypto";
-import { save } from "../../common/data.js";
+import { save } from "../functions/common/data.js";
 import { SFNClient, StartExecutionCommand } from "@aws-sdk/client-sfn";
-const stepFunctionClient = new SFNClient({ region: "us-east-1" });
+const stepFunctionClient = new SFNClient({ region: "ap-south-1" });
 
 const insertOrders = async () => {
 	const order = generateRandomOrder();
@@ -92,7 +92,7 @@ function generateRandomOrder() {
 		};
 	}
 	function getRandomCustomer() {
-		const ind = Math.floor(Math.random() * customers.length)
+		const ind = Math.floor(Math.random() * customers.length);
 		console.log(customers[ind]);
 		return customers[ind];
 	}

@@ -6,12 +6,11 @@ import { Function } from "sst/constructs";
 import { API } from "./MyStack";
 
 export const SFStack = ({ stack }: StackContext) => {
-	const { ORDER_TABLE, orderTable } = use(API);
+	const { OrdersTable } = use(API);
 
 	const orderPlacedFn = new Function(stack, "OrderPlacedFunction", {
 		handler: "packages/functions/api/order/order-process.handler",
-		permissions: ["dynamodb", orderTable],
-		bind: [ORDER_TABLE],
+		bind: [OrdersTable],
 	});
 
 	orderPlacedFn.attachPermissions(["dynamodb:PutItem"]);

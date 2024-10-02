@@ -8,7 +8,7 @@ import {
 	QueryCommand,
 } from "@aws-sdk/lib-dynamodb";
 
-const client = new DynamoDBClient({ region: "us-east-1" });
+const client = new DynamoDBClient({ region: "ap-south-1" });
 const docClient = DynamoDBDocumentClient.from(client);
 
 export async function save(tableName, item) {
@@ -26,82 +26,78 @@ export async function save(tableName, item) {
 }
 
 export async function findAllFilter(tableName, filters) {
-	try {
-		const params = {
-			TableName: tableName,
-			Limit: 50,
-			ExclusiveStartKey: filters.nextKey
-				? {
-						id: { S: filters.nextKey },
-				  }
-				: undefined,
+	const params = {
+		TableName: tableName,
+		Limit: 50,
+		ExclusiveStartKey: filters.nextKey
+			? {
+					id: { S: filters.nextKey },
+			  }
+			: undefined,
+	};
+	if (filters.status === "delivered") {
+		let d = filters.date;
+		let query;
+		let now = new Date();
+		if (d == undefined) {
+			now.setDate(now.getDate() - 7);
+			query = ` AND createdAt > :date`;
+			console.log(query);
+		} else if (d == "older") {
+			now.setMonth(now.getMonth() - 3);
+			query = ` AND createdAt > :date`;
+		} else if (d == "2m") {
+			now.setMonth(now.getMonth() - 2);
+			query = ` AND createdAt > :date`;
+		} else if (d == "1m") {
+			now.setMonth(now.getMonth() - 1);
+			query = ` AND createdAt > :date`;
+		} else if (d == "14") {
+			now.setDate(now.getDate() - 14);
+			query = ` AND createdAt > :date`;
+		} else if (d == "7") {
+			now.setDate(now.getDate() - 7);
+			query = ` AND createdAt > :date`;
+		}
+		params.IndexName = "status-createdAt-index";
+		params.ScanIndexForward = false;
+		params.KeyConditionExpression = "#s = :status" + query;
+		params.ExpressionAttributeNames = {
+			"#s": "status",
 		};
-		if (filters.status === "delivered") {
-			let d = filters.date;
-			let query;
-			let now = new Date();
-			if (d == undefined) {
-				now.setDate(now.getDate() - 7);
-				query = ` AND createdAt > :date`;
-				console.log(query);
-			} else if (d == "older") {
-				now.setMonth(now.getMonth() - 3);
-				query = ` AND createdAt > :date`;
-			} else if (d == "2m") {
-				now.setMonth(now.getMonth() - 2);
-				query = ` AND createdAt > :date`;
-			} else if (d == "1m") {
-				now.setMonth(now.getMonth() - 1);
-				query = ` AND createdAt > :date`;
-			} else if (d == "14") {
-				now.setDate(now.getDate() - 14);
-				query = ` AND createdAt > :date`;
-			} else if (d == "7") {
-				now.setDate(now.getDate() - 7);
-				query = ` AND createdAt > :date`;
-			}
-			params.IndexName = "status-createdAt-index";
-			params.ScanIndexForward = false;
-			params.KeyConditionExpression = "#s = :status" + query;
-			params.ExpressionAttributeNames = {
-				"#s": "status",
-			};
-			params.ExpressionAttributeValues = {
-				":status": filters.status,
-				":date": now.toISOString(),
-			};
-		} else if (filters.status) {
-			params.IndexName = "status-createdAt-index";
-			params.ScanIndexForward = false;
-			params.KeyConditionExpression = "#s = :status";
-			params.ExpressionAttributeNames = {
-				"#s": "status",
-			};
-			params.ExpressionAttributeValues = {
-				":status": filters.status,
-			};
-		}
-		let command;
-		console.log(params);
-		if (filters.status) {
-			command = new QueryCommand(params);
-		} else {
-			command = new ScanCommand(params);
-		}
-		const data = await docClient.send(command);
-		if (data.LastEvaluatedKey) {
-			filters.nextKey = data.LastEvaluatedKey.id;
-		} else {
-			filters.nextKey = undefined;
-		}
-		return {
-			count: data.Count,
-			items: data.Items,
-			nextKey: filters.nextKey,
+		params.ExpressionAttributeValues = {
+			":status": filters.status,
+			":date": now.toISOString(),
 		};
-	} catch (err) {
-		throw err;
+	} else if (filters.status) {
+		params.IndexName = "status-createdAt-index";
+		params.ScanIndexForward = false;
+		params.KeyConditionExpression = "#s = :status";
+		params.ExpressionAttributeNames = {
+			"#s": "status",
+		};
+		params.ExpressionAttributeValues = {
+			":status": filters.status,
+		};
 	}
+	let command;
+	console.log(params);
+	if (filters.status) {
+		command = new QueryCommand(params);
+	} else {
+		command = new ScanCommand(params);
+	}
+	const data = await docClient.send(command);
+	if (data.LastEvaluatedKey) {
+		filters.nextKey = data.LastEvaluatedKey.id;
+	} else {
+		filters.nextKey = undefined;
+	}
+	return {
+		count: data.Count,
+		items: data.Items,
+		nextKey: filters.nextKey,
+	};
 }
 
 export async function findAll(tableName, nextKey, indexName) {
@@ -117,7 +113,7 @@ export async function findAll(tableName, nextKey, indexName) {
 		};
 		if (indexName) {
 			params.IndexName = indexName;
-			params.ScanIndexForward = false
+			params.ScanIndexForward = false;
 		}
 		const command = new ScanCommand(params);
 		const data = await docClient.send(command);

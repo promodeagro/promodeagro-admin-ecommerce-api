@@ -4,6 +4,7 @@ import { update } from "../../common/data";
 import middy from "@middy/core";
 import { bodyValidator } from "../util/bodyValidator";
 import { errorHandler } from "../util/errorHandler";
+// import { updateProductStatus } from ".";
 
 const updateActiveSchema = z.array(
 	z.object({
@@ -14,6 +15,7 @@ const updateActiveSchema = z.array(
 
 export const handler = middy(async (event) => {
 	const req = JSON.parse(event.body);
+	// await updateProductStatus(req);
 	await Promise.all(
 		req.map(async (item) => {
 			return update(

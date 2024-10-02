@@ -15,7 +15,7 @@ import {
 import z from "zod";
 
 const cognitoClient = new CognitoIdentityProviderClient({
-	region: "us-east-1",
+	region: "ap-south-1",
 });
 
 const emailSchema = z.string().email({ message: "invalid email" });

@@ -6,8 +6,8 @@ import { AuthStack } from "./stacks/AuthStack";
 export default {
 	config(_input) {
 		return {
-			name: "promodeargo-admin",
-			region: "us-east-1",
+			name: "promodeagro-admin",
+			region: "ap-south-1",
 		};
 	},
 	stacks(app) {

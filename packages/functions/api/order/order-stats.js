@@ -1,11 +1,11 @@
 import { DynamoDBClient, DescribeTableCommand } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, ScanCommand } from "@aws-sdk/lib-dynamodb";
-import { Config } from "sst/node/config";
+import { Table } from "sst/node/table";
 
 const dynamoClient = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(dynamoClient);
 
-const orderTable = Config.ORDER_TABLE;
+const orderTable = Table.OrdersTable.tableName;
 
 console.log("orderTab :", orderTable);
 
@@ -29,7 +29,7 @@ export const handler = async (event) => {
 		body: JSON.stringify({
 			totalOrderCount: totalOrderCount,
 			completedOrderCount: completedOrderCount,
-			confirmedOrderCount: confirmedOrderCount, 
+			confirmedOrderCount: confirmedOrderCount,
 			cancelledOrderCount: cancelledOrderCount,
 			refundedOrderCount: refundedOrderCount,
 		}),

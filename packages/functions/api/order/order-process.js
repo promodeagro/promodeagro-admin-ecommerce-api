@@ -1,6 +1,5 @@
 import { update } from "../../common/data";
-import { Config } from "sst/node/config";
-
+import { Table } from "sst/node/table";
 export const handler = async (event) => {
 	const id = event.body.id;
 	const state = event.stateName;
@@ -26,7 +25,7 @@ export const handler = async (event) => {
 	}
 	try {
 		const result = await update(
-			Config.ORDER_TABLE,
+			Table.OrdersTable.tableName,
 			{
 				id: id,
 			},

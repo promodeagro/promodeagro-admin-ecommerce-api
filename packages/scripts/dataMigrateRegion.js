@@ -5,7 +5,7 @@ import {
 	PutCommand,
 } from "@aws-sdk/lib-dynamodb";
 
-const sourceClient = new DynamoDBClient({ region: "us-east-1" });
+const sourceClient = new DynamoDBClient({ region: "ap-south-1" });
 const sourceDocClient = DynamoDBDocumentClient.from(sourceClient);
 
 const destClient = new DynamoDBClient({ region: "ap-south-1" });
@@ -17,12 +17,12 @@ const inventory = await getAll("prod-promodeargo-admin-inventoryTable");
 let i = 0;
 for (const product of products.items) {
 	console.log(`ADDING PRODUCTS ${i++}`);
-	await save("prod-promodeargo-admin-productsTable", product);
+	await save("prod-promodeagro-admin-productsTable", product);
 }
 i = 0;
 for (const inven of inventory.items) {
 	console.log(`ADDING INVENTORY ${i++}`);
-	await save("prod-promodeargo-admin-inventoryTable", inven);
+	await save("prod-promodeagro-admin-inventoryTable", inven);
 }
 
 export async function getAll(tableName, nextKey) {
@@ -31,7 +31,7 @@ export async function getAll(tableName, nextKey) {
 			TableName: tableName,
 		};
 		const command = new ScanCommand(params);
-		const data = await sourceClient.send(command);
+		const data = await sourceDocClient.send(command);
 		if (data.LastEvaluatedKey) {
 			nextKey = data.LastEvaluatedKey.id;
 		} else {

@@ -1,8 +1,8 @@
 import { findById } from "../../common/data";
-import { Config } from "sst/node/config";
+import { Table } from "sst/node/table";
 import { SFNClient, SendTaskSuccessCommand } from "@aws-sdk/client-sfn";
 
-const stepFunctionClient = new SFNClient({ region: "us-east-1" });
+const stepFunctionClient = new SFNClient({ region: "ap-south-1" });
 
 export const handler = async (event) => {
 	const orderIds = event.queryStringParameters.ids;
@@ -28,7 +28,7 @@ export const handler = async (event) => {
 
 const processOrder = async (orderId, assignedTo) => {
 	try {
-		const response = await findById(Config.ORDER_TABLE, orderId);
+		const response = await findById(Table.OrdersTable.tableName, orderId);
 		if (!response) {
 			throw new Error(`Order not found: ${orderId}`);
 		}
