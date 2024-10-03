@@ -36,9 +36,7 @@ export async function list(nextKey) {
 	}
 	const res = await Promise.all(
 		data.Items.map(async (item) => {
-			console.log("1");
-			const inventoryData = inventoryByProdId(item.id);
-			console.log("2");
+			const inventoryData = await inventoryByProdId(item.id);
 			const itemCode = inventoryData.id;
 			delete inventoryData.id;
 			return {

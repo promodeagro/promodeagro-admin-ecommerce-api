@@ -37,6 +37,7 @@ export async function findAllFilter(tableName, filters) {
 	};
 	if (filters.status === "delivered") {
 		let d = filters.date;
+		console.log(d);
 		let query;
 		let now = new Date();
 		if (d == undefined) {
@@ -59,7 +60,7 @@ export async function findAllFilter(tableName, filters) {
 			now.setDate(now.getDate() - 7);
 			query = ` AND createdAt > :date`;
 		}
-		params.IndexName = "status-createdAt-index";
+		params.IndexName = "statusCreatedAtIndex";
 		params.ScanIndexForward = false;
 		params.KeyConditionExpression = "#s = :status" + query;
 		params.ExpressionAttributeNames = {
@@ -70,7 +71,7 @@ export async function findAllFilter(tableName, filters) {
 			":date": now.toISOString(),
 		};
 	} else if (filters.status) {
-		params.IndexName = "status-createdAt-index";
+		params.IndexName = "statusCreatedAtIndex";
 		params.ScanIndexForward = false;
 		params.KeyConditionExpression = "#s = :status";
 		params.ExpressionAttributeNames = {

@@ -42,8 +42,17 @@ export function API({ app, stack }: StackContext) {
 	const addressesTable = new Table(stack, "Addresses", {
 		fields: {
 			userId: "string",
+			addressId: "string"
 		},
-		primaryIndex: { partitionKey: "userId" },
+		primaryIndex: { partitionKey: "userId", sortKey: "addressId" },
+	});
+	
+	const SaveForLaterTable = new Table(stack, "SaveForLater", {
+		fields: {
+			userId: "string",
+			productId: "string"
+		},
+		primaryIndex: { partitionKey: "userId", sortKey: "productId" },
 	});
 
 	const cartTable = new Table(stack, "CartItems", {
@@ -101,6 +110,13 @@ export function API({ app, stack }: StackContext) {
 			UserId: "string",
 		},
 		primaryIndex: { partitionKey: "UserId" },
+	});
+	const salesTable = new Table(stack, "sales", {
+		fields: {
+			orderId: "string",
+			productId: "string"
+		},
+		primaryIndex: { partitionKey: "orderId", sortKey: "productId" },
 	});
 
 	const cognito = use(AuthStack);

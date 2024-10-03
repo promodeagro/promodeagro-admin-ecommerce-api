@@ -17,6 +17,15 @@ export const handler = middy(async (event) => {
 	if (search) {
 		data.items = await checkQuery(search);
 	} else {
+		if (!["7", "14", "1m", "2m", "older"].includes(date)) {
+			return {
+				statusCode: 200,
+				body: JSON.stringify({
+					error: "invalid date parameter",
+					message: `must be one of these "7, 14, 1m, 2m, older" values`,
+				}),
+			};
+		}
 		data = await findAllFilter(Table.OrdersTable.tableName, {
 			nextKey,
 			status,
