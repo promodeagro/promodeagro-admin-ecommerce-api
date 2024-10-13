@@ -4,8 +4,9 @@ import { Table } from "sst/node/table";
 import middy from "@middy/core";
 import { bodyValidator } from "../util/bodyValidator";
 import { errorHandler } from "../util/errorHandler";
+import { Events } from "./events";
 
-const reqSchmea = z.array(
+export const reqSchmea = z.array(
 	z
 		.object({
 			id: z.string(),
@@ -17,7 +18,9 @@ const reqSchmea = z.array(
 		})
 );
 export const handler = middy(async (event) => {
+	console.log(1);
 	const req = JSON.parse(event.body);
+	console.log(2);
 	await Promise.all(
 		req.map(async (item) => {
 			const product = await findById(
@@ -39,6 +42,9 @@ export const handler = middy(async (event) => {
 			);
 		})
 	);
+	console.log(3);
+	await Events.PriceUpdate.publish(req);
+	console.log(4);
 	return {
 		statusCode: 200,
 		body: JSON.stringify({ message: "success" }),

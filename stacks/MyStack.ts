@@ -1,7 +1,12 @@
 import * as iam from "aws-cdk-lib/aws-iam";
-import { Bucket, Table, StackContext, Api, use } from "sst/constructs";
+import { Bucket, Table, StackContext, Api, use, EventBus, Config } from "sst/constructs";
 import { AuthStack } from "./AuthStack";
 export function API({ app, stack }: StackContext) {
+
+	const API_URL = new Config.Secret(stack, "API_URL")
+	const FACEBOOK_ACCESS_TOKEN = new Config.Secret(stack, "FACEBOOK_ACCESS_TOKEN")
+	const CATALOG_ID = new Config.Secret(stack, "CATALOG_ID")
+
 	const isProd = app.stage == "prod"
 
 	const mediaBucket = new Bucket(stack, "mediaBucket", {
@@ -177,15 +182,17 @@ export function API({ app, stack }: StackContext) {
 		},
 		primaryIndex: { partitionKey: "id" },
 	});
-	const tables = [
-		inventoryTable,
-		inventoryModificationTable,
-		productsTable,
-		inventoryStatsTable,
-		OrdersTable,
-		addressesTable,
-		usersTable
-	];
+
+	const bus = new EventBus(stack, "bus", {
+		defaults: {
+			retries: 10,
+		},
+	});
+
+	bus.subscribe("Product.PriceUpdate", {
+		handler: "packages/functions/api/inventory/add-whatsapp-comm.handler",
+		bind: [API_URL, FACEBOOK_ACCESS_TOKEN, CATALOG_ID]
+	});
 
 	const api = new Api(stack, "api", {
 		customDomain: isProd ?
@@ -203,7 +210,12 @@ export function API({ app, stack }: StackContext) {
 		// },
 		defaults: {
 			function: {
-				bind: tables,
+				bind: [inventoryTable,
+					inventoryModificationTable,
+					productsTable,
+					inventoryStatsTable,
+					OrdersTable,
+					usersTable, bus],
 			},
 		},
 		routes: {
