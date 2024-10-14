@@ -1,12 +1,13 @@
 import * as iam from "aws-cdk-lib/aws-iam";
 import { Bucket, Table, StackContext, Api, use, EventBus, Config } from "sst/constructs";
 import { AuthStack } from "./AuthStack";
+import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
+
 export function API({ app, stack }: StackContext) {
 
 	const API_URL = new Config.Secret(stack, "API_URL")
 	const FACEBOOK_ACCESS_TOKEN = new Config.Secret(stack, "FACEBOOK_ACCESS_TOKEN")
 	const CATALOG_ID = new Config.Secret(stack, "CATALOG_ID")
-
 	const isProd = app.stage == "prod"
 
 	const mediaBucket = new Bucket(stack, "mediaBucket", {
@@ -51,7 +52,7 @@ export function API({ app, stack }: StackContext) {
 		},
 		primaryIndex: { partitionKey: "userId", sortKey: "addressId" },
 	});
-	
+
 	const SaveForLaterTable = new Table(stack, "SaveForLater", {
 		fields: {
 			userId: "string",
@@ -183,6 +184,23 @@ export function API({ app, stack }: StackContext) {
 		primaryIndex: { partitionKey: "id" },
 	});
 
+	const runsheetTable = new Table(stack, "runsheetTable", {
+		fields: {
+			id: "string",
+			riderId: "string"
+		},
+		primaryIndex: { partitionKey: "id" },
+		globalIndexes: {
+			riderIndex: { partitionKey: "riderId" }
+		}
+	});
+	const riderTable = new Table(
+		stack,
+		"riderTable", {
+		cdk: { table: dynamodb.Table.fromTableArn(this, "RIDER_TABLE", isProd ? "arn:aws:dynamodb:ap-south-1:851725323791:table/prod-promodeagro-rider-ridersTable" : "arn:aws:dynamodb:ap-south-1:851725323791:table/Sohail-Shah-promodeagro-rider-ridersTable") }
+	}
+	)
+
 	const bus = new EventBus(stack, "bus", {
 		defaults: {
 			retries: 10,
@@ -214,7 +232,7 @@ export function API({ app, stack }: StackContext) {
 					inventoryModificationTable,
 					productsTable,
 					inventoryStatsTable,
-					OrdersTable,
+					OrdersTable, runsheetTable, riderTable,
 					usersTable, bus],
 			},
 		},
@@ -314,11 +332,17 @@ export function API({ app, stack }: StackContext) {
 			"GET /order/{id}": "packages/functions/api/order/get-order.handler",
 			"GET /order/stats": "packages/functions/api/order/order-stats.handler",
 			"PUT /order/proceed": "packages/functions/api/order/proceed-order.handler",
+			"POST /runsheet": "packages/functions/api/runsheet/runsheet.createRunsheetHandler",
+			"GET /runsheet": "packages/functions/api/runsheet/runsheet.listRunsheetHandler",
+			"GET /runsheet/{id}": "packages/functions/api/runsheet/runsheet.getRunsheetHandler",
 		},
 	});
 
 	stack.addOutputs({
 		LambdaApiEndpoint: api.url,
+		API_URL: API_URL.name,
+		FACEBOOK_ACCESS_TOKEN: FACEBOOK_ACCESS_TOKEN.name,
+		CATALOG_ID: CATALOG_ID.name,
 	});
 
 	return {

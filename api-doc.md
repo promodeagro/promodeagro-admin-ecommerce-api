@@ -285,3 +285,91 @@ The request body must be a JSON object with the following structure:
 - All endpoints are secured and require appropriate permissions.
 - Ensure to handle errors and exceptions as per the organization's best practices.
 - Refer to the internal documentation for detailed request and response schemas.
+
+
+## **Create Runsheet**
+
+**POST** `/runsheet`
+
+Creates a new runsheet for a rider.
+
+**Request Body:**
+
+```json
+{ "riderId": "123e4567-e89b-12d3-a456-426614174000", "orders": [ "123e4567-e89b-12d3-a456-426614174001", "123e4567-e89b-12d3-a456-426614174002" ] }
+```
+
+**Response:**
+
+- **Status 200:**
+
+  ```
+  json
+  ```
+
+  Copy code
+
+  `{ "message": "created runsheet successfully" }`
+
+- **Status 400:**
+
+  ```json
+  { "message": "rider does not exist" }```
+
+***
+
+## **List Runsheets**
+
+**GET** `/runsheet`
+
+Retrieves a list of runsheets. Supports pagination through the `pageKey` query parameter.
+
+**Query Parameters:**
+
+| Parameter | Type   | Description                       |
+| --------- | ------ | --------------------------------- |
+| pageKey   | string | (Optional) Key for the next page. |
+
+**Response:**
+
+- **Status 200:**
+
+```json
+[ { "id": "abc123", "riderId": "123e4567-e89b-12d3-a456-426614174000", "status": "pending", "orders": [ "123e4567-e89b-12d3-a456-426614174001", "123e4567-e89b-12d3-a456-426614174002" ], "name": "John Doe" } ]
+```
+
+***
+
+## **Get Runsheet by ID**
+
+**GET** `/runsheet/{id}`
+
+Fetches a specific runsheet by its ID.
+
+**Path Parameters:**
+
+| Parameter | Type   | Description            |
+| --------- | ------ | ---------------------- |
+| id        | string | The ID of the runsheet |
+
+**Response:**
+
+- **Status 200:**
+
+  ```
+  json
+  ```
+
+  Copy code
+
+  `{ "id": "abc123", "riderId": "123e4567-e89b-12d3-a456-426614174000", "status": "pending", "orders": [ "123e4567-e89b-12d3-a456-426614174001", "123e4567-e89b-12d3-a456-426614174002" ] }`
+
+- **Status 400:**
+
+  ```
+  json
+  ```
+
+  Copy code
+
+  `{ "message": "id is required" }`
