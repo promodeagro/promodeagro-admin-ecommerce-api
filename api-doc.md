@@ -307,7 +307,6 @@ Creates a new runsheet for a rider.
   json
   ```
 
-  Copy code
 
   `{ "message": "created runsheet successfully" }`
 
@@ -360,7 +359,6 @@ Fetches a specific runsheet by its ID.
   json
   ```
 
-  Copy code
 
   `{ "id": "abc123", "riderId": "123e4567-e89b-12d3-a456-426614174000", "status": "pending", "orders": [ "123e4567-e89b-12d3-a456-426614174001", "123e4567-e89b-12d3-a456-426614174002" ] }`
 
@@ -370,6 +368,156 @@ Fetches a specific runsheet by its ID.
   json
   ```
 
-  Copy code
 
   `{ "message": "id is required" }`
+
+  ```
+## List Riders
+
+**GET** `/rider`
+
+**Description**: Retrieves a list of riders filtered by their review status.
+
+**Query Parameters**:
+- `status` (optional): The review status to filter riders. If not provided, defaults to `"active"`.
+- `pageKey` (optional): The key for pagination. Used to retrieve the next set of results.
+
+**Response**:
+- **200 OK**: Returns an object containing the count of riders, the list of riders, and the next pagination key.
+  
+**Example Request**:
+
+
+
+GET /rider?status=active\&pageKey=12345
+
+```json
+{ "count": 10, "items": [ { "id": "1", "userPhoto": "https://example.com/user-photo.jpg", "verified": false, "reviewStatus": "active" }, // More riders... ], "nextKey": "67890" }
+```
+
+***
+
+## Get Rider
+
+**GET** `/rider/{id}`
+
+**Description**: Retrieves details of a specific rider by their ID.
+
+**Path Parameters**:
+
+- `id`: The unique identifier of the rider.
+
+**Response**:
+
+- **200 OK**: Returns the rider details.
+
+- **400 Bad Request**: If the ID is not provided.
+
+**Example Request**:
+
+`GET /rider/1`
+
+**Example Response**:
+
+```
+json
+```
+
+`{ "id": "1", "userPhoto": "https://example.com/user-photo.jpg", "verified": false, "reviewStatus": "active" }`
+
+***
+
+## Activate Rider
+
+**PUT** `/rider/{id}/activate`
+
+**Description**: Activates a specific rider by their ID.
+
+**Path Parameters**:
+
+- `id`: The unique identifier of the rider.
+
+**Response**:
+
+- **200 OK**: Returns the updated rider details.
+
+- **400 Bad Request**: If the ID is not provided.
+
+**Example Request**:
+
+`PUT /rider/1/activate`
+
+**Example Response**:
+
+```
+json
+```
+
+`{ "id": "1", "reviewStatus": "active" }`
+
+***
+
+## Verify Document
+
+**PUT** `/rider/{id}/verify-document`
+
+**Description**: Verifies a specific document for a rider by their ID.
+
+**Path Parameters**:
+
+- `id`: The unique identifier of the rider.
+
+**Query Parameters**:
+
+- `document`: The name of the document to verify. Valid values are:
+
+  - `userPhoto`
+
+  - `aadharFront`
+
+  - `aadharBack`
+
+  - `pan`
+
+  - `dl`
+
+  - `vehicleImage`
+
+  - `rcBook`
+
+**Response**:
+
+- **200 OK**: Returns the updated documents of the rider.
+
+- **400 Bad Request**: If the ID is not provided or if the document is invalid.
+
+**Example Request**:
+
+`PUT /rider/1/verify-document?document=dl`
+
+**Example Response**:
+
+```
+json
+```
+
+`{ "id": "1", "documents": { "userPhoto": {"url": "https://example.com/user-photo.jpg", "verified": false}, "aadharFront": {"url": "https://example.com/aadhar-front.jpg", "verified": false}, "aadharBack": {"url": "https://example.com/aadhar-back.jpg", "verified": false}, "pan": {"url": "https://example.com/pan.jpg", "verified": false}, "dl": {"url": "https://example.com/dl.jpg", "verified": true}, "vehicleImage": {"url": "https://example.com/vehicle-image.jpg", "verified": false}, "rcBook": {"url": "https://example.com/rc-book.jpg", "verified": false} } }`
+
+***
+
+## Error Responses
+
+**Common Error Responses**:
+
+- **400 Bad Request**: If required parameters are missing or invalid.
+
+- **404 Not Found**: If the rider with the specified ID does not exist.
+
+### Example Error Response
+
+```
+json
+```
+
+`{ "message": "id is required" }`
+

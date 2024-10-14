@@ -8,7 +8,10 @@ export const queryParamsValidator = (schema: z.Schema) => ({
 		}
 		const result = schema.safeParse(queryStringParameters);
 		if (!result.success) {
-			throw new Error("Invalid query parameters");
+			const errorMessage = result.error.errors
+				.map((err) => `${err.path.join(".")}: ${err.message}`)
+				.join("; ");
+			throw new Error(`Validation error: ${errorMessage}`);
 		}
 	},
 });

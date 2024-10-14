@@ -335,6 +335,10 @@ export function API({ app, stack }: StackContext) {
 			"POST /runsheet": "packages/functions/api/runsheet/runsheet.createRunsheetHandler",
 			"GET /runsheet": "packages/functions/api/runsheet/runsheet.listRunsheetHandler",
 			"GET /runsheet/{id}": "packages/functions/api/runsheet/runsheet.getRunsheetHandler",
+			"GET /rider": "packages/functions/api/rider/rider.listRidersHandler",
+			"GET /rider/{id}": "packages/functions/api/rider/rider.getRiderHandler",
+			"PUT /rider/{id}/activate": "packages/functions/api/rider/rider.activateRiderHandler",
+			"PUT /rider/{id}/verify-document": "packages/functions/api/rider/rider.verifyDocumentHandler",
 		},
 	});
 
