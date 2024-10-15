@@ -2,11 +2,11 @@ import z from "zod";
 import middy from "@middy/core";
 import { bodyValidator } from "../util/bodyValidator";
 import { errorHandler } from "../util/errorHandler";
-import { createRunsheet, getRunsheet, runsheetList } from ".";
+import { createRunsheet, getRunsheet, runsheetList, closeRunsheet } from ".";
 
 const runsheetSchema = z.object({
 	riderId: z.string().uuid(),
-	orders: z.array(z.string().uuid()),
+	orders: z.array(z.string()),
 });
 
 export const createRunsheetHandler = middy(async (event) => {
@@ -31,3 +31,21 @@ export const getRunsheetHandler = middy(async (event) => {
 	}
 	return await getRunsheet(id);
 }).use(errorHandler());
+
+const closeRunsheetSchema = z.object({
+	amount: z.number(),
+});
+
+export const closeRunsheetHandler = middy(async (event) => {
+	const { amount } = JSON.parse(event.body);
+	let id = event.pathParameters?.id;
+	if (!id) {
+		return {
+			statusCode: 400,
+			body: JSON.stringify({ message: "id is required" }),
+		};
+	}
+	return await closeRunsheet(id, amount);
+})
+	.use(bodyValidator(closeRunsheetSchema))
+	.use(errorHandler());

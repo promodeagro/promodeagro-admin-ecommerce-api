@@ -382,6 +382,54 @@ Fetches a specific runsheet by its ID.
   `{ "message": "id is required" }`
 
   ```
+
+  ## **Close Runsheet by ID**
+
+**PUT** `/runsheet/{id}/close`
+
+closes a specific runsheet by its ID.
+
+**Path Parameters:**
+
+| Parameter | Type   | Description            |
+| --------- | ------ | ---------------------- |
+| id        | string | The ID of the runsheet |
+
+**Response:**
+
+- **Status 200:**
+
+  ```
+  json
+  ```
+
+  `{
+    "riderId": "b452a1fe-694d-430b-ae06-5c5ec5c7cece",
+    "orders": [
+        "401-3385984-2549139",
+        "401-6484620-3193625",
+        "401-4172601-3242039",
+        "401-8100022-9359713",
+        "401-4722680-4109619"
+    ],
+    "amountCollected": 6000,
+    "updatedAt": "2024-10-15T07:47:51.014Z",
+    "amountCollectable": 6274,
+    "status": "closed",
+    "createdAt": "2024-10-15T07:47:51.014Z",
+    "id": "655df2d3ef0b"
+}`
+
+- **Status 400:**
+
+  ```
+  json
+  ```
+
+
+  `{ "message": "id is required" }`
+
+  ```
 ## List Riders
 
 **GET** `/rider`

@@ -33,7 +33,6 @@ export const listOrdersInventory = async (type, nextKey) => {
 				":method": type,
 			});
 	}
-    console.log(params);
 	const command = new ScanCommand(params);
 	const data = await docClient.send(command);
 	if (data.LastEvaluatedKey) {
