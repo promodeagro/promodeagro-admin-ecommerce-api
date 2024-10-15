@@ -143,6 +143,27 @@ async function fetchProducts(event) {
 				};
 				variants.push(variant);
 				console.log("Generated variant:", variant);
+			}else if (product.unit === "litres" || product.unit === "litre") {
+				const variant = {
+					retailer_id: product.id,
+					availability: "in stock",
+					brand: product.brand || "Default Brand",
+					category: product.category.toLowerCase(),
+					subcategory: product.subCategory || "",
+					description:
+						product.description || "Fresh Fruits and Vegetables",
+					image_url: product.image,
+					url: product.image,
+					name: product.name,
+					price: product.unitPrices?.[0]?.price
+						? (product.unitPrices[0].price * 100).toFixed(0)
+						: "0", // Use first unitPrice if available, fallback to 0
+					currency: product.currency || "INR",
+					options: [{ name: "Quantity", value: "1 Piece" }],
+					productIDForEcom: product.id,
+				};
+				variants.push(variant);
+				console.log("Generated variant:", variant);
 			}
 
 			// Create or Update each variant in Facebook Commerce Manager
