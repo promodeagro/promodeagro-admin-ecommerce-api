@@ -42,7 +42,11 @@ export const createRunsheet = async (req) => {
 		...req,
 		status: "pending",
 	};
-	return await save(runsheetTable, runsheet);
+	await save(runsheetTable, runsheet);
+	return {
+		statusCode: 200,
+		body: JSON.stringify({ message: "created runsheet successfully" }),
+	};
 };
 
 export const runsheetList = async (nextKey) => {

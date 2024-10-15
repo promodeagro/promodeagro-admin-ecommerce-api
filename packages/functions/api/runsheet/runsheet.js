@@ -11,11 +11,7 @@ const runsheetSchema = z.object({
 
 export const createRunsheetHandler = middy(async (event) => {
 	const req = JSON.parse(event.body);
-	await createRunsheet(req);
-	return {
-		statusCode: 200,
-		body: JSON.stringify({ message: "created runsheet successfully" }),
-	};
+	return await createRunsheet(req);
 })
 	.use(bodyValidator(runsheetSchema))
 	.use(errorHandler());
