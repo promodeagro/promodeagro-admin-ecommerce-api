@@ -37,13 +37,11 @@ export async function findAllFilter(tableName, filters) {
 	};
 	if (filters.status === "delivered") {
 		let d = filters.date;
-		console.log(d);
 		let query;
 		let now = new Date();
 		if (d == undefined) {
 			now.setDate(now.getDate() - 7);
 			query = ` AND createdAt > :date`;
-			console.log(query);
 		} else if (d == "older") {
 			now.setMonth(now.getMonth() - 3);
 			query = ` AND createdAt > :date`;
@@ -82,7 +80,6 @@ export async function findAllFilter(tableName, filters) {
 		};
 	}
 	let command;
-	console.log(params);
 	if (filters.status) {
 		command = new QueryCommand(params);
 	} else {
@@ -194,10 +191,8 @@ export async function productExistsByName(tableName, productName) {
 	};
 
 	try {
-		console.log(JSON.stringify(productName));
 		const command = new ScanCommand(params);
 		const response = await docClient.send(command);
-		console.log(JSON.stringify(response));
 		return !!response.Items && response.Items.length > 0;
 	} catch (error) {
 		console.error("Error scanning DynamoDB:", error);

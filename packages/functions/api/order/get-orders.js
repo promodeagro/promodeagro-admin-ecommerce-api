@@ -16,31 +16,27 @@ export const handler = middy(async (event) => {
 	let data = {};
 	if (search) {
 		data.items = await checkQuery(search);
-	} else {
-		if (!["7", "14", "1m", "2m", "older"].includes(date)) {
-			return {
-				statusCode: 200,
-				body: JSON.stringify({
-					error: "invalid date parameter",
-					message: `must be one of these "7, 14, 1m, 2m, older" values`,
-				}),
-			};
-		}
-		data = await findAllFilter(Table.OrdersTable.tableName, {
-			nextKey,
-			status,
-			date,
-		});
 	}
+	if (date == undefined) {
+		date = "7";
+	}
+	if (!["7", "14", "1m", "2m", "older"].includes(date)) {
+		date = "7";
+	}
+	data = await findAllFilter(Table.OrdersTable.tableName, {
+		nextKey,
+		status,
+		date,
+	});
 	const itemsArray = Array.isArray(data.items) ? data.items : [data.items];
-
 	const res = itemsArray.map((item) => {
 		return {
 			id: item.id,
 			orderDate: item.createdAt,
 			customerName: item.customerName,
 			items: item.items.length,
-			paymentStatus: item.paymentDetails?.paymentStatus || undefined,
+			paymentStatus: item.paymentDetails?.status || undefined,
+			paymentType: item.paymentDetails?.method || undefined,
 			orderStatus: item.status,
 			totalAmount: item.totalPrice,
 			assignee: item?.assigned || undefined,
@@ -57,7 +53,7 @@ export const handler = middy(async (event) => {
 	};
 }).use(errorHandler());
 
-async function checkQuery(query) {
+export async function checkQuery(query) {
 	const con = /^\d+$/.test(parseInt(query));
 	if (con) {
 		return await findById(Table.OrdersTable.tableName, query);
