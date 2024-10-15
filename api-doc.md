@@ -137,6 +137,16 @@ This document provides detailed information about the available API endpoints, i
       - `status` (string): filter for orders by status
       - `pageKey` (string): The key of the page for pagination
 
+#### Get All Orders for inventory
+- **HTTP Verb:** GET
+- **Route:** `/order-inventory`
+- **Description:** Retrieves all orders.
+- **Path Parameters:** None
+- **Query Parameters:** 
+      - `search` (optional): A search term to filter inventory items by name.
+      - `type` (string): filter for orders by type cash or online
+      - `pageKey` (string): The key of the page for pagination
+
 
 #### 1. Orders-filter
 - **HTTP Verb:** GET
