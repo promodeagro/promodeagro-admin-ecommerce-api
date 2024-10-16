@@ -95,7 +95,7 @@ async function fetchProducts(event) {
 		const product = await response.json() // Assuming the response contains multiple products
 
 		const variants = [];
-		console.log("Products:", products);
+		console.log("Products:", product);
 
 		// Iterate through all fetched products
 			// Handling products with unitPrices (e.g., sold in KG)
@@ -200,3 +200,6 @@ async function fetchProducts(event) {
 }
 
 // Call the function with the relevant event
+export const handler = EventHandler(Events.PriceUpdate, async (evt) => {
+	fetchProducts(evt);
+});
