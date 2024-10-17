@@ -13,6 +13,7 @@ import {
 import { Table } from "sst/node/table";
 import { findAll, findById, save, update } from "../../common/data";
 import crypto from "crypto";
+import { Key } from "aws-cdk-lib/aws-kms";
 
 const client = new DynamoDBClient({ region: "ap-south-1" });
 const docClient = DynamoDBDocumentClient.from(client);
@@ -65,7 +66,7 @@ export const runsheetList = async (nextKey) => {
 			const rider = await findById(riderTable, item.riderId);
 			return {
 				...item,
-				name: JSON.parse(rider.personalDetails).fullName,
+				name: rider.personalDetails.fullName,
 			};
 		})
 	);
@@ -98,5 +99,66 @@ export const closeRunsheet = async (id, amount) => {
 			id: id,
 		},
 		{ amountCollected: amount, status: "closed" }
+	);
+};
+
+export const runsheetSearch = async (query) => {
+	const idParams = {
+		TableName: runsheetTable,
+		FilterExpression: "contains(#id, :query)",
+		ExpressionAttributeNames: {
+			"#id": "id",
+		},
+		ExpressionAttributeValues: {
+			":query": query,
+		},
+	};
+	const idData = await docClient.send(new ScanCommand(idParams));
+	if (idData.Items.length == 0) {
+		const params = {
+			TableName: riderTable,
+			FilterExpression: "contains(personalDetails.#fullName, :query)",
+			ExpressionAttributeNames: {
+				"#fullName": "fullName",
+			},
+			ExpressionAttributeValues: {
+				":query": query,
+			},
+		};
+		const command = new ScanCommand(params);
+		const data = await docClient.send(command);
+		const riderData = await Promise.all(
+			data.Items.map((rider) => {
+				const params = {
+					TableName: runsheetTable,
+					IndexName: "riderIndex",
+					KeyConditionExpression: "riderId = :riderId",
+					ExpressionAttributeValues: {
+						":riderId": rider.id,
+					},
+				};
+				const runsheetCommand = new QueryCommand(params);
+				return client.send(runsheetCommand);
+			})
+		);
+		const arr = riderData.flatMap((item) => item.Items);
+		return await Promise.all(
+			arr.map(async (item) => {
+				const rider = await findById(riderTable, item.riderId);
+				return {
+					...item,
+					name: rider.personalDetails.fullName,
+				};
+			})
+		);
+	}
+	return await Promise.all(
+		idData.Items.map(async (item) => {
+			const rider = await findById(riderTable, item.riderId);
+			return {
+				...item,
+				name: rider.personalDetails.fullName,
+			};
+		})
 	);
 };

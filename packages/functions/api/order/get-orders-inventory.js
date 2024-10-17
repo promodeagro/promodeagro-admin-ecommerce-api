@@ -5,11 +5,11 @@ import { listOrdersInventory } from ".";
 import { z } from "zod";
 import { queryParamsValidator } from "../util/queryParamsValidator";
 
-const typeQuerySchema = z
-	.object({
-		type: z.enum(["cash", "online"]),
-	})
-	.optional();
+// const typeQuerySchema = z
+// 	.object({
+// 		type: z.enum(["cash", "online"]),
+// 	})
+// 	.optional();
 
 export const handler = middy(async (event) => {
 	let nextKey = event.queryStringParameters?.pageKey || undefined;
@@ -44,5 +44,5 @@ export const handler = middy(async (event) => {
 		}),
 	};
 })
-	.use(queryParamsValidator(typeQuerySchema))
+	// .use(queryParamsValidator(typeQuerySchema))
 	.use(errorHandler());

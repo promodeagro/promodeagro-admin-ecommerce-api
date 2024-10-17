@@ -2,7 +2,13 @@ import z from "zod";
 import middy from "@middy/core";
 import { bodyValidator } from "../util/bodyValidator";
 import { errorHandler } from "../util/errorHandler";
-import { createRunsheet, getRunsheet, runsheetList, closeRunsheet } from ".";
+import {
+	createRunsheet,
+	getRunsheet,
+	runsheetList,
+	closeRunsheet,
+	runsheetSearch,
+} from ".";
 
 const runsheetSchema = z.object({
 	riderId: z.string().uuid(),
@@ -17,7 +23,13 @@ export const createRunsheetHandler = middy(async (event) => {
 	.use(errorHandler());
 
 export const listRunsheetHandler = middy(async (event) => {
+	let search = event.queryStringParameters?.search || undefined;
+	if (search) {
+		console.log(search);
+		return await runsheetSearch(search);
+	}
 	let nextKey = event.queryStringParameters?.pageKey || undefined;
+	console.log(2);
 	return await runsheetList(nextKey);
 }).use(errorHandler());
 

@@ -338,6 +338,7 @@ Retrieves a list of runsheets. Supports pagination through the `pageKey` query p
 | Parameter | Type   | Description                       |
 | --------- | ------ | --------------------------------- |
 | pageKey   | string | (Optional) Key for the next page. |
+| search    | string | (Optional) name of rider or id of runsheet. |
 
 **Response:**
 
