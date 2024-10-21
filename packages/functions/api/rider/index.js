@@ -79,13 +79,8 @@ export const activateRider = async (id) => {
 
 export const verifyDocument = async (id, document) => {
 	const rider = await findById(riderTable, id);
-	const documents = JSON.parse(rider.documents);
-	console.log(documents);
+	const documents = rider.documents;
 	const a = documents.filter((item) => item.hasOwnProperty(document));
 	a[0].verified = true;
-	return await update(
-		riderTable,
-		{ id: id },
-		{ documents: JSON.stringify(documents) }
-	);
+	return await update(riderTable, { id: id }, { documents: documents });
 };

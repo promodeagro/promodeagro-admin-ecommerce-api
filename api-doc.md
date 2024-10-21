@@ -179,6 +179,15 @@ This document provides detailed information about the available API endpoints, i
   - `id` (string): The ID of the order.
 - **Query Parameters:** None
 
+#### 5. cancel order
+- **HTTP Verb:** PUT
+- **Route:** `/order/{id}/cancel`
+- **Description:** cancels the order.
+- **Path Parameters:**
+  - `id` (string): The ID of the order.
+- **Query Parameters:** None
+- **Request Body:** {reson : 'reason for cancellation'}
+
 ### POST /auth/signin
 
 * **HTTP Verb:** POST

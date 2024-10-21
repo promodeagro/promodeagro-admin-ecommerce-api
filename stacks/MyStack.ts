@@ -331,6 +331,7 @@ export function API({ app, stack }: StackContext) {
 			"GET /order": "packages/functions/api/order/get-orders.handler",
 			"GET /order-inventory": "packages/functions/api/order/get-orders-inventory.handler",
 			"GET /order/{id}": "packages/functions/api/order/get-order.handler",
+			"PUT /order/{id}/cancel": "packages/functions/api/order/cancel-order.handler",
 			"GET /order/stats": "packages/functions/api/order/order-stats.handler",
 			"PUT /order/proceed": "packages/functions/api/order/proceed-order.handler",
 			"POST /runsheet": "packages/functions/api/runsheet/runsheet.createRunsheetHandler",
