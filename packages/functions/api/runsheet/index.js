@@ -64,9 +64,15 @@ export const runsheetList = async (nextKey) => {
 	return await Promise.all(
 		list.items.map(async (item) => {
 			const rider = await findById(riderTable, item.riderId);
+			const riderDetails = {
+				id: item.riderId,
+				name: rider.personalDetails.fullName,
+				number: rider.number,
+			};
+			delete item.riderId;
 			return {
 				...item,
-				name: rider.personalDetails.fullName,
+				rider: riderDetails,
 			};
 		})
 	);

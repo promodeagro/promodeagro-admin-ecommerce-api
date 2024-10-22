@@ -14,12 +14,14 @@ import { queryParamsValidator } from "../util/queryParamsValidator";
 export const handler = middy(async (event) => {
 	let nextKey = event.queryStringParameters?.pageKey || undefined;
 	let type = event.queryStringParameters?.type || undefined;
+	let date = event.queryStringParameters?.date || undefined;
 	let search = event.queryStringParameters?.search || undefined;
 	let data = {};
 	if (search) {
 		data.items = await checkQuery(search);
+	} else {
+		data = await listOrdersInventory(type, date, nextKey);
 	}
-	data = await listOrdersInventory(type, nextKey);
 	const itemsArray = Array.isArray(data.items) ? data.items : [data.items];
 	const res = itemsArray.map((item) => {
 		return {

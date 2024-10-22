@@ -16,18 +16,19 @@ export const handler = middy(async (event) => {
 	let data = {};
 	if (search) {
 		data.items = await checkQuery(search);
+	} else {
+		if (date == undefined) {
+			date = "7";
+		}
+		if (!["7", "14", "1m", "2m", "older"].includes(date)) {
+			date = "7";
+		}
+		data = await findAllFilter(Table.OrdersTable.tableName, {
+			nextKey,
+			status,
+			date,
+		});
 	}
-	if (date == undefined) {
-		date = "7";
-	}
-	if (!["7", "14", "1m", "2m", "older"].includes(date)) {
-		date = "7";
-	}
-	data = await findAllFilter(Table.OrdersTable.tableName, {
-		nextKey,
-		status,
-		date,
-	});
 	const itemsArray = Array.isArray(data.items) ? data.items : [data.items];
 	const res = itemsArray.map((item) => {
 		return {
@@ -60,16 +61,15 @@ export async function checkQuery(query) {
 	} else {
 		const params = {
 			TableName: Table.OrdersTable.tableName,
-			FilterExpression:
-				"contains(#id, :query) OR contains(#customerName, :query)",
+			FilterExpression: "contains(#customerName, :query)",
 			ExpressionAttributeNames: {
-				"#id": "id",
 				"#customerName": "customerName",
 			},
 			ExpressionAttributeValues: {
-				":query": query,
+				":query": query.trim(),
 			},
 		};
+		console.log(params);
 		const command = new ScanCommand(params);
 		const data = await docClient.send(command);
 		return data.Items;

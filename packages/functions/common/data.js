@@ -26,6 +26,28 @@ export async function save(tableName, item) {
 }
 
 export async function findAllFilter(tableName, filters) {
+	let dateQuery;
+	let now = new Date();
+	let d = filters.date;
+	if (d == undefined) {
+		now.setDate(now.getDate() - 7);
+		dateQuery = `createdAt > :date`;
+	} else if (d == "older") {
+		now.setMonth(now.getMonth() - 3);
+		dateQuery = `createdAt < :date`;
+	} else if (d == "2m") {
+		now.setMonth(now.getMonth() - 2);
+		dateQuery = `createdAt > :date`;
+	} else if (d == "1m") {
+		now.setMonth(now.getMonth() - 1);
+		dateQuery = `createdAt > :date`;
+	} else if (d == "14") {
+		now.setDate(now.getDate() - 14);
+		dateQuery = `createdAt > :date`;
+	} else if (d == "7") {
+		now.setDate(now.getDate() - 7);
+		dateQuery = `createdAt > :date`;
+	}
 	const params = {
 		TableName: tableName,
 		Limit: 50,
@@ -34,33 +56,12 @@ export async function findAllFilter(tableName, filters) {
 					id: { S: filters.nextKey },
 			  }
 			: undefined,
+		IndexName: "statusCreatedAtIndex",
+		ScanIndexForward: false,
 	};
-	if (filters.status === "delivered") {
-		let d = filters.date;
-		let query;
-		let now = new Date();
-		if (d == undefined) {
-			now.setDate(now.getDate() - 7);
-			query = ` AND createdAt > :date`;
-		} else if (d == "older") {
-			now.setMonth(now.getMonth() - 3);
-			query = ` AND createdAt > :date`;
-		} else if (d == "2m") {
-			now.setMonth(now.getMonth() - 2);
-			query = ` AND createdAt > :date`;
-		} else if (d == "1m") {
-			now.setMonth(now.getMonth() - 1);
-			query = ` AND createdAt > :date`;
-		} else if (d == "14") {
-			now.setDate(now.getDate() - 14);
-			query = ` AND createdAt > :date`;
-		} else if (d == "7") {
-			now.setDate(now.getDate() - 7);
-			query = ` AND createdAt > :date`;
-		}
-		params.IndexName = "statusCreatedAtIndex";
-		params.ScanIndexForward = false;
-		params.KeyConditionExpression = "#s = :status" + query;
+	let command;
+	if (filters.status) {
+		params.KeyConditionExpression = `#s = :status AND ${dateQuery}`;
 		params.ExpressionAttributeNames = {
 			"#s": "status",
 		};
@@ -68,21 +69,12 @@ export async function findAllFilter(tableName, filters) {
 			":status": filters.status,
 			":date": now.toISOString(),
 		};
-	} else if (filters.status) {
-		params.IndexName = "statusCreatedAtIndex";
-		params.ScanIndexForward = false;
-		params.KeyConditionExpression = "#s = :status";
-		params.ExpressionAttributeNames = {
-			"#s": "status",
-		};
-		params.ExpressionAttributeValues = {
-			":status": filters.status,
-		};
-	}
-	let command;
-	if (filters.status) {
 		command = new QueryCommand(params);
 	} else {
+		params.FilterExpression = dateQuery;
+		params.ExpressionAttributeValues = {
+			":date": now.toISOString(),
+		};
 		command = new ScanCommand(params);
 	}
 	const data = await docClient.send(command);
@@ -187,7 +179,7 @@ export async function productExistsByName(tableName, productName) {
 		ExpressionAttributeValues: {
 			":name": productName,
 		},
-		Limit: 1, // We only need to know if at least one item exists
+		Limit: 1,
 	};
 
 	try {
