@@ -5,6 +5,7 @@ import middy from "@middy/core";
 import { bodyValidator } from "../util/bodyValidator";
 import { errorHandler } from "../util/errorHandler";
 import { Events } from "./events";
+import { v4 as uuidv4 } from "uuid";
 
 export const reqSchmea = z.array(
 	z
@@ -62,6 +63,7 @@ function calculateUnitPrices(units, price, savings) {
 			const unitCompareAt = Math.round((unit / 1000) * savings);
 			const discountedSavings = Math.abs(unitPrice - unitCompareAt);
 			prices.push({
+				varient_id: uuidv4(),
 				qty: unit,
 				mrp: unitCompareAt,
 				savings: discountedSavings,
@@ -70,6 +72,7 @@ function calculateUnitPrices(units, price, savings) {
 		}
 	} else {
 		prices.push({
+			varient_id: uuidv4(),
 			qty: 1,
 			price: price,
 			savings: Math.abs(price - savings),

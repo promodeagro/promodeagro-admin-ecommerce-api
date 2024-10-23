@@ -2,60 +2,55 @@ import { EventHandler } from "sst/node/event-bus";
 import ky from "ky";
 import { Events } from "./events";
 import { Config } from "sst/node/config";
+import crypto from "crypto";
+import { findById, update } from "../../common/data";
+import { Table } from "sst/node/table";
 
 const API_URL = Config.API_URL;
 const FACEBOOK_ACCESS_TOKEN = Config.FACEBOOK_ACCESS_TOKEN;
 const CATALOG_ID = Config.CATALOG_ID;
 const FACEBOOK_GRAPH_API_URL = "https://graph.facebook.com/v18.0";
-async function getProductFromCommerceManager() {
+
+// Function to fetch all products from Facebook Commerce Manager
+async function getProductsFromCommerceManager() {
 	try {
-		const response = await ky.get(
-			`${FACEBOOK_GRAPH_API_URL}/${CATALOG_ID}/products`,
-			{
-				searchParams: {
-					access_token: FACEBOOK_ACCESS_TOKEN,
-				},
-			}
-		);
-		return await response.json(); // Ensure you await the JSON parsing
+		const response = await ky.get(`${FACEBOOK_GRAPH_API_URL}/${CATALOG_ID}/products`, {
+			searchParams: {
+				access_token: FACEBOOK_ACCESS_TOKEN,
+			},
+		});
+		return await response.json();
 	} catch (error) {
-		console.error(
-			"Error fetching product from Commerce Manager:",
-			error.message
-		);
+		console.error("Error fetching product from Commerce Manager:", error.message);
 		throw error;
 	}
 }
 
+// Function to create a new product variant in Facebook Commerce Manager
 async function createProductInCommerceManager(variant) {
 	try {
-		const response = await ky.post(
-			`${FACEBOOK_GRAPH_API_URL}/${CATALOG_ID}/products`, // Corrected URL
-			{
-				headers: {
-					"Content-Type": "application/x-www-form-urlencoded",
-				},
-				body: new URLSearchParams({
-					...variant,
-					access_token: FACEBOOK_ACCESS_TOKEN,
-				}),
-			}
-		);
+		const response = await ky.post(`${FACEBOOK_GRAPH_API_URL}/${CATALOG_ID}/products`, {
+			headers: {
+				"Content-Type": "application/x-www-form-urlencoded",
+			},
+			body: new URLSearchParams({
+				...variant,
+				access_token: FACEBOOK_ACCESS_TOKEN,
+			}),
+		});
 		const data = await response.json();
 		console.log("Created product:", data);
 		return data;
 	} catch (error) {
-		console.error(
-			"Error creating product in Commerce Manager:",
-			error.message
-		);
+		console.error("Error creating product in Commerce Manager:", error.message);
 		throw error;
 	}
 }
 
+// Function to update an existing product in Facebook Commerce Manager
 async function updateProductInCommerceManager(productData, updateFbData) {
 	try {
-		const product = {
+		const productUpdate = {
 			access_token: FACEBOOK_ACCESS_TOKEN,
 			requests: [
 				{
@@ -66,140 +61,105 @@ async function updateProductInCommerceManager(productData, updateFbData) {
 			],
 		};
 
-		const response = await ky.post(
-			`${FACEBOOK_GRAPH_API_URL}/${CATALOG_ID}/batch`,
-			{
-				headers: {
-					"Content-Type": "application/json",
-				},
-				json: product, // Sends JSON body automatically
-			}
-		);
+		const response = await ky.post(`${FACEBOOK_GRAPH_API_URL}/${CATALOG_ID}/batch`, {
+			headers: {
+				"Content-Type": "application/json",
+			},
+			json: productUpdate,
+		});
+
+		console.log(FACEBOOK_ACCESS_TOKEN);
+		console.log(CATALOG_ID);
 		const data = await response.json();
 		console.log("Updated product:", data);
 		return data;
 	} catch (error) {
-		console.error(
-			"Error updating product in Commerce Manager:",
-			error.message
-		);
+		console.error("Error updating product in Commerce Manager:", error.message);
 		throw error;
 	}
 }
 
+// Main function to process product updates
 async function fetchProducts(event) {
 	console.log("Received event:", JSON.stringify(event, null, 2));
 	try {
-		// Fetch products based on the event, using the event.id for filtering if necessary
-		const response = await ky.get(`${API_URL}/${event.id}`);
-		const product = await response.json() // Assuming the response contains multiple products
+		const productId = event.properties[0].id;
+		const response = await ky.get(`${API_URL}${productId}`);
+		const product = await response.json(); // Assuming the response contains a single product
+		console.log("Fetched product:", product);
 
 		const variants = [];
-		console.log("Products:", product);
+		if (Array.isArray(product.unitPrices)) {
+			for (const unitPrice of product.unitPrices) {
+				let variantId = unitPrice.variant_id;
 
-		// Iterate through all fetched products
-			// Handling products with unitPrices (e.g., sold in KG)
-			if (product.unit === "kgs" && Array.isArray(product.unitPrices)) {
-				for (const unitPrice of product.unitPrices) {
-					const variant = {
-						retailer_id: product.id,
-						availability: "in stock",
-						brand: product.brand || "Default Brand",
-						category: product.category.toLowerCase(),
-						subcategory: product.subCategory || "",
-						description:
-							product.description || "Fresh Fruits and Vegetables",
-						url: product.image,
-						image_url: product.image,
-						name: `${product.name} - ${unitPrice.qty} kg`,
-						price: (unitPrice.price * 100).toFixed(0), // Price in cents/paise
-						currency: product.currency || "INR",
-						options: [{ name: "Weight", value: `${unitPrice.qty} kg` }],
-						productIDForEcom: product.id,
-					};
-					variants.push(variant);
-					console.log("Generated variant:", variant);
-				}
-			}
-			// Handling products sold in pieces
-			else if (product.unit === "pieces" || product.unit === "pcs") {
-				const variant = {
-					retailer_id: product.id,
-					availability: "in stock",
-					brand: product.brand || "Default Brand",
-					category: product.category.toLowerCase(),
-					subcategory: product.subCategory || "",
-					description:
-						product.description || "Fresh Fruits and Vegetables",
-					image_url: product.image,
-					url: product.image,
-					name: product.name,
-					price: product.unitPrices?.[0]?.price
-						? (product.unitPrices[0].price * 100).toFixed(0)
-						: "0", // Use first unitPrice if available, fallback to 0
-					currency: product.currency || "INR",
-					options: [{ name: "Quantity", value: "1 Piece" }],
-					productIDForEcom: product.id,
-				};
-				variants.push(variant);
-				console.log("Generated variant:", variant);
-			}else if (product.unit === "litres" || product.unit === "litre") {
-				const variant = {
-					retailer_id: product.id,
-					availability: "in stock",
-					brand: product.brand || "Default Brand",
-					category: product.category.toLowerCase(),
-					subcategory: product.subCategory || "",
-					description:
-						product.description || "Fresh Fruits and Vegetables",
-					image_url: product.image,
-					url: product.image,
-					name: product.name,
-					price: product.unitPrices?.[0]?.price
-						? (product.unitPrices[0].price * 100).toFixed(0)
-						: "0", // Use first unitPrice if available, fallback to 0
-					currency: product.currency || "INR",
-					options: [{ name: "Quantity", value: "1 Piece" }],
-					productIDForEcom: product.id,
-				};
-				variants.push(variant);
-				console.log("Generated variant:", variant);
-			}
+				if (!variantId) {
 
-			// Create or Update each variant in Facebook Commerce Manager
-			for (const variant of variants) {
-				const existingProducts = await getProductFromCommerceManager();
-				console.log("Existing products:", existingProducts);
+					console.log("creating new one")
+					// Generate a new variant_id
+					variantId = crypto.randomUUID();
+					unitPrice.variant_id = variantId;
 
-				// Check if the variant already exists by retailer_id
-				const existingProduct = existingProducts.data.find(
-					(product) => product.retailer_id === variant.retailer_id
-				);
-
-				// If the product exists, update it, otherwise create it
-				if (existingProduct) {
-					const updateFbData = {
-						name: variant.name,
-						price: variant.price,
-						availability: variant.availability,
-						currency: variant.currency,
-					};
-					await updateProductInCommerceManager(
-						existingProduct,
-						updateFbData
+					// Update the entire unitPrices list in the inventory table with the new variant_id
+					const updateResult = await update(
+						Table.inventoryTable.tableName,
+						{ id: product.itemCode }, // Use itemCode from the product
+						{ unitPrices: product.unitPrices } // Update the entire unitPrices list
 					);
-					console.log(`Product ${variant.retailer_id} updated.`);
-				} else {
-					await createProductInCommerceManager(variant);
-					console.log(`Product ${variant.retailer_id} created.`);
+					console.log(`Updated unitPrices in inventory table for itemCode ${product.itemCode}:`, updateResult);
+					console.log(Table.inventoryTable.tableName)
 				}
+				console.log(Table.inventoryTable.tableName)
+
+				const variant = {
+					itemCode: product.itemCode,
+					availability: "in stock",
+					brand: product.brand || "Default Brand",
+					category: product.category.toLowerCase(),
+					subcategory: product.subCategory || "",
+					description: product.description || "Fresh Fruits and Vegetables",
+					url: product.image,
+					image_url: product.image,
+					name: `${product.name} - ${unitPrice.qty} ${product.unit}`,
+					price: (unitPrice.price * 100).toFixed(0), // Convert price to cents/paise
+					currency: product.currency || "INR",
+					options: [{ name: "Weight", value: `${unitPrice.qty} ${product.unit}` }],
+					retailer_id: variantId,
+					unitPrices: product.unitPrices,
+				};
+
+				variants.push(variant);
 			}
+		}
+
+		const existingProducts = await getProductsFromCommerceManager();
+		console.log("Existing products:", existingProducts);
+
+		for (const variant of variants) {
+			const existingProduct = existingProducts.data.find(
+				(p) => p.retailer_id === variant.retailer_id
+			);
+
+			if (existingProduct) {
+				const updateFbData = {
+					name: variant.name,
+					price: variant.price,
+					availability: variant.availability,
+					currency: variant.currency,
+				};
+				await updateProductInCommerceManager(existingProduct, updateFbData);
+				console.log(`Product ${variant.retailer_id} updated in Commerce Manager.`);
+			} else {
+				await createProductInCommerceManager(variant);
+				console.log(`Product ${variant.retailer_id} created in Commerce Manager.`);
+			}
+		}
 	} catch (error) {
 		console.error("Error fetching products:", error);
 	}
 }
 
-// Call the function with the relevant event
+// Event handler for product price updates
 export const handler = EventHandler(Events.PriceUpdate, async (evt) => {
-	fetchProducts(evt);
+	await fetchProducts(evt);
 });
