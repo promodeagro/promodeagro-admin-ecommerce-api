@@ -86,31 +86,12 @@ async function fetchProducts(event) {
 		const productId = event.properties[0].id;
 		const response = await ky.get(`${API_URL}${productId}`);
 		const product = await response.json(); // Assuming the response contains a single product
-		console.log("Fetched product:", product);
+		// console.log("Fetched product:", product);
 
 		const variants = [];
 		if (Array.isArray(product.unitPrices)) {
 			for (const unitPrice of product.unitPrices) {
 				let variantId = unitPrice.variant_id;
-
-				if (!variantId) {
-
-					console.log("creating new one")
-					// Generate a new variant_id
-					variantId = crypto.randomUUID();
-					unitPrice.variant_id = variantId;
-
-					// Update the entire unitPrices list in the inventory table with the new variant_id
-					const updateResult = await update(
-						Table.inventoryTable.tableName,
-						{ id: product.itemCode }, // Use itemCode from the product
-						{ unitPrices: product.unitPrices } // Update the entire unitPrices list
-					);
-					console.log(`Updated unitPrices in inventory table for itemCode ${product.itemCode}:`, updateResult);
-					console.log(Table.inventoryTable.tableName)
-				}
-				console.log(Table.inventoryTable.tableName)
-
 				const variant = {
 					itemCode: product.itemCode,
 					availability: "in stock",
