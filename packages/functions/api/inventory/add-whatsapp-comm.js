@@ -91,7 +91,9 @@ async function fetchProducts(event) {
 		const variants = [];
 		if (Array.isArray(product.unitPrices)) {
 			for (const unitPrice of product.unitPrices) {
-				let variantId = unitPrice.variant_id;
+
+				console.log(unitPrice)
+				let variantId = unitPrice.varient_id;
 				const variant = {
 					itemCode: product.itemCode,
 					availability: "in stock",
@@ -120,6 +122,9 @@ async function fetchProducts(event) {
 			const existingProduct = existingProducts.data.find(
 				(p) => p.retailer_id === variant.retailer_id
 			);
+			console.log(existingProduct)
+			console.log(variant.retailer_id)
+
 
 			if (existingProduct) {
 				const updateFbData = {
