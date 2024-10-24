@@ -31,12 +31,16 @@ export const listRiders = async (status, nextKey) => {
 		FilterExpression: "#rs = :reviewStatusVal",
 		ExpressionAttributeNames: { "#rs": "reviewStatus" },
 	};
-	if (status) {
+	if (status != undefined) {
 		params.ExpressionAttributeValues = { ":reviewStatusVal": status };
 	} else {
-		params.ExpressionAttributeValues = { ":reviewStatusVal": "active" };
+		params.FilterExpression = "#rs IN (:pending, :active, :rejected)";
+		params.ExpressionAttributeValues = {
+			":pending": "pending",
+			":active": "active",
+			":rejected": "rejected",
+		};
 	}
-	console.log(params);
 	const command = new ScanCommand(params);
 	const data = await docClient.send(command);
 	if (data.LastEvaluatedKey) {
@@ -73,14 +77,45 @@ export const activateRider = async (id) => {
 		{ id: id },
 		{
 			reviewStatus: "active",
+			rejectionReason: null,
 		}
 	);
 };
 
-export const verifyDocument = async (id, document) => {
+export const rejectRider = async (id, req) => {
+	const rider = await findById(riderTable, id);
+	if (!rider) {
+		return {
+			statusCode: 404,
+			body: JSON.stringify({ message: "rider not found" }),
+		};
+	}
+	return await update(
+		riderTable,
+		{ id: id },
+		{ reviewStatus: req.status, rejectionReason: req.reason }
+	);
+};
+
+export const verifyDocument = async (id, document, req) => {
+	const rider = await findById(riderTable, id);
+	if (!rider) {
+		return {
+			statusCode: 404,
+			body: JSON.stringify({ message: "rider not found" }),
+		};
+	}
+	const documents = rider.documents;
+	const a = documents.filter((item) => item.hasOwnProperty(document));
+	a[0].verified = req.status;
+	return await update(riderTable, { id: id }, { documents: documents });
+};
+
+export const rejectDocument = async (id, document, req) => {
 	const rider = await findById(riderTable, id);
 	const documents = rider.documents;
 	const a = documents.filter((item) => item.hasOwnProperty(document));
-	a[0].verified = true;
+	a[0].verified = req.status;
+	a[0].rejectionReason = req.reason;
 	return await update(riderTable, { id: id }, { documents: documents });
 };

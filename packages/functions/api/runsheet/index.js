@@ -79,7 +79,25 @@ export const runsheetList = async (nextKey) => {
 };
 
 export const getRunsheet = async (id) => {
-	return await findById(runsheetTable, id);
+	const runsheet = await findById(runsheetTable, id);
+	const params = {
+		TableName: riderTable,
+		Key: {
+			id: runsheet.riderId,
+		},
+		ProjectionExpression: "#pd.#fn", // Use aliases for nested fields
+		ExpressionAttributeNames: {
+			"#pd": "personalDetails",
+			"#fn": "fullName",
+		},
+	};
+	const rider = await docClient.send(new GetCommand(params));
+	const riderDetails = {
+		id: runsheet.riderId,
+		name: rider.Item.personalDetails.fullName,
+	};
+	delete runsheet.riderId;
+	return { ...runsheet, rider: riderDetails };
 };
 
 export const closeRunsheet = async (id, amount) => {
@@ -151,9 +169,15 @@ export const runsheetSearch = async (query) => {
 		return await Promise.all(
 			arr.map(async (item) => {
 				const rider = await findById(riderTable, item.riderId);
+				const riderDetails = {
+					id: item.riderId,
+					name: rider.personalDetails.fullName,
+					number: rider.number,
+				};
+				delete item.riderId;
 				return {
 					...item,
-					name: rider.personalDetails.fullName,
+					rider: riderDetails,
 				};
 			})
 		);

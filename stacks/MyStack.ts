@@ -340,8 +340,8 @@ export function API({ app, stack }: StackContext) {
 			"PUT /runsheet/{id}/close": "packages/functions/api/runsheet/runsheet.closeRunsheetHandler",
 			"GET /rider": "packages/functions/api/rider/rider.listRidersHandler",
 			"GET /rider/{id}": "packages/functions/api/rider/rider.getRiderHandler",
-			"PUT /rider/{id}/activate": "packages/functions/api/rider/rider.activateRiderHandler",
-			"PUT /rider/{id}/verify-document": "packages/functions/api/rider/rider.verifyDocumentHandler",
+			"PATCH /rider/{id}": "packages/functions/api/rider/rider.patchRiderHandler",
+			"PATCH /rider/{id}/document": "packages/functions/api/rider/rider.patchDocuemntHandler",
 		},
 	});
 

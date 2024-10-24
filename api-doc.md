@@ -495,97 +495,144 @@ json
 
 ***
 
-## Activate Rider
+## PATCH `/rider/{id}`
 
-**PUT** `/rider/{id}/activate`
+**Description:**\
+This endpoint is used to activate or reject a rider based on the provided status.
 
-**Description**: Activates a specific rider by their ID.
+### Request
 
-**Path Parameters**:
+- **Method:** PATCH
 
-- `id`: The unique identifier of the rider.
+- **Path Parameters:**
 
-**Response**:
+  - `id` (string): The unique identifier of the rider.
 
-- **200 OK**: Returns the updated rider details.
+- **Body:**
 
-- **400 Bad Request**: If the ID is not provided.
+  ```
+  json
+  ```
 
-**Example Request**:
+  Copy code
 
-`PUT /rider/1/activate`
+  `{ "status": "verified" | "rejected", "reason": "string (optional, required if status is rejected)" }`
 
-**Example Response**:
+### Response
 
-```
-json
-```
+**Success:**
 
-`{ "id": "1", "reviewStatus": "active" }`
+- **Status Code:** 200
 
-***
+- **Body:**
 
-## Verify Document
+  ```
+  json
+  ```
 
-**PUT** `/rider/{id}/verify-document`
+  Copy code
 
-**Description**: Verifies a specific document for a rider by their ID.
+  `{ "message": "Rider status updated successfully" }`
 
-**Path Parameters**:
+**Error Cases:**
 
-- `id`: The unique identifier of the rider.
+- **400 Bad Request:**
 
-**Query Parameters**:
+  ```
+  json
+  ```
 
-- `document`: The name of the document to verify. Valid values are:
+  Copy code
 
-  - `userPhoto`
+  `{ "message": "id is required" }`
 
-  - `aadharFront`
+- **404 Not Found:**
 
-  - `aadharBack`
+  ```
+  json
+  ```
 
-  - `pan`
+  Copy code
 
-  - `dl`
-
-  - `vehicleImage`
-
-  - `rcBook`
-
-**Response**:
-
-- **200 OK**: Returns the updated documents of the rider.
-
-- **400 Bad Request**: If the ID is not provided or if the document is invalid.
-
-**Example Request**:
-
-`PUT /rider/1/verify-document?document=dl`
-
-**Example Response**:
-
-```
-json
-```
-
-`{ "id": "1", "documents": { "userPhoto": {"url": "https://example.com/user-photo.jpg", "verified": false}, "aadharFront": {"url": "https://example.com/aadhar-front.jpg", "verified": false}, "aadharBack": {"url": "https://example.com/aadhar-back.jpg", "verified": false}, "pan": {"url": "https://example.com/pan.jpg", "verified": false}, "dl": {"url": "https://example.com/dl.jpg", "verified": true}, "vehicleImage": {"url": "https://example.com/vehicle-image.jpg", "verified": false}, "rcBook": {"url": "https://example.com/rc-book.jpg", "verified": false} } }`
+  `{ "message": "rider not found" }`
 
 ***
 
-## Error Responses
+## PATCH `/rider/{id}/document`
 
-**Common Error Responses**:
+**Description:**\
+This endpoint is used to verify or reject a specific document for a rider.
 
-- **400 Bad Request**: If required parameters are missing or invalid.
+### Request
 
-- **404 Not Found**: If the rider with the specified ID does not exist.
+- **Method:** PATCH
 
-### Example Error Response
+- **Path Parameters:**
 
-```
-json
-```
+  - `id` (string): The unique identifier of the rider.
 
-`{ "message": "id is required" }`
+- **Query Parameters:**
 
+  - `name` (string): The name of the document. Must be one of:
+
+    - `userPhoto`
+
+    - `aadharFront`
+
+    - `aadharBack`
+
+    - `pan`
+
+    - `dl`
+
+    - `vehicleImage`
+
+    - `rcBook`
+
+- **Body:**
+
+  ```
+  json
+  ```
+
+  Copy code
+
+  `{ "status": "verified" | "rejected", "reason": "string (optional, required if status is rejected)" }`
+
+### Response
+
+**Success:**
+
+- **Status Code:** 200
+
+- **Body:**
+
+  ```
+  json
+  ```
+
+  Copy code
+
+  `{ "message": "Document status updated successfully" }`
+
+**Error Cases:**
+
+- **400 Bad Request:**
+
+  ```
+  json
+  ```
+
+  Copy code
+
+  `{ "message": "id is required" }`
+
+- **404 Not Found:**
+
+  ```
+  json
+  ```
+
+  Copy code
+
+  `{ "message": "rider not found" }`

@@ -2,7 +2,14 @@ import z from "zod";
 import middy from "@middy/core";
 import { bodyValidator } from "../util/bodyValidator";
 import { errorHandler } from "../util/errorHandler";
-import { listRiders, getRider, activateRider, verifyDocument } from ".";
+import {
+	listRiders,
+	getRider,
+	activateRider,
+	verifyDocument,
+	rejectDocument,
+	rejectRider,
+} from ".";
 import { queryParamsValidator } from "../util/queryParamsValidator";
 
 export const listRidersHandler = middy(async (event) => {
@@ -22,7 +29,22 @@ export const getRiderHandler = middy(async (event) => {
 	return await getRider(id);
 }).use(errorHandler());
 
-export const activateRiderHandler = middy(async (event) => {
+const patchSchema = z
+	.object({
+		status: z.enum(["verified", "rejected"]),
+		reason: z.string().optional(),
+	})
+	.refine(
+		(data) =>
+			data.status === "verified" ||
+			(data.status === "rejected" && data.reason),
+		{
+			message: "Reason is required when status is 'rejected'",
+			path: ["reason"],
+		}
+	);
+
+export const patchRiderHandler = middy(async (event) => {
 	let id = event.pathParameters?.id;
 	if (!id) {
 		return {
@@ -30,11 +52,18 @@ export const activateRiderHandler = middy(async (event) => {
 			body: JSON.stringify({ message: "id is required" }),
 		};
 	}
-	return await activateRider(id);
-}).use(errorHandler());
+	const req = JSON.parse(event.body);
+	if (req.status == "verified") {
+		return await activateRider(id);
+	} else {
+		return await rejectRider(id, req);
+	}
+})
+	.use(bodyValidator(patchSchema))
+	.use(errorHandler());
 
 const documentQuerySchema = z.object({
-	document: z.enum([
+	name: z.enum([
 		"userPhoto",
 		"aadharFront",
 		"aadharBack",
@@ -45,7 +74,7 @@ const documentQuerySchema = z.object({
 	]),
 });
 
-export const verifyDocumentHandler = middy(async (event) => {
+export const patchDocuemntHandler = middy(async (event) => {
 	let id = event.pathParameters?.id;
 	if (!id) {
 		return {
@@ -53,8 +82,14 @@ export const verifyDocumentHandler = middy(async (event) => {
 			body: JSON.stringify({ message: "id is required" }),
 		};
 	}
-	let document = event.queryStringParameters?.document || undefined;
-	return await verifyDocument(id, document);
+	let document = event.queryStringParameters?.name || undefined;
+	const req = JSON.parse(event.body);
+	if (req.status === "verified") {
+		return await verifyDocument(id, document, req);
+	} else {
+		return await rejectDocument(id, document, req);
+	}
 })
+	.use(bodyValidator(patchSchema))
 	.use(queryParamsValidator(documentQuerySchema))
 	.use(errorHandler());
