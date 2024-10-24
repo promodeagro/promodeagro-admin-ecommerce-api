@@ -29,9 +29,9 @@ export const getRiderHandler = middy(async (event) => {
 	return await getRider(id);
 }).use(errorHandler());
 
-const patchSchema = z
+const patchRiderSchema = z
 	.object({
-		status: z.enum(["verified", "rejected"]),
+		status: z.enum(["active", "inactive", "rejected"]),
 		reason: z.string().optional(),
 	})
 	.refine(
@@ -53,8 +53,8 @@ export const patchRiderHandler = middy(async (event) => {
 		};
 	}
 	const req = JSON.parse(event.body);
-	if (req.status == "verified") {
-		return await activateRider(id);
+	if (req.status == "active" || req.status == "inactive") {
+		return await activateRider(id, req);
 	} else {
 		return await rejectRider(id, req);
 	}
@@ -74,6 +74,21 @@ const documentQuerySchema = z.object({
 	]),
 });
 
+const patchDocSchema = z
+	.object({
+		status: z.enum(["verified", "rejected"]),
+		reason: z.string().optional(),
+	})
+	.refine(
+		(data) =>
+			data.status === "verified" ||
+			(data.status === "rejected" && data.reason),
+		{
+			message: "Reason is required when status is 'rejected'",
+			path: ["reason"],
+		}
+	);
+
 export const patchDocuemntHandler = middy(async (event) => {
 	let id = event.pathParameters?.id;
 	if (!id) {
@@ -90,6 +105,6 @@ export const patchDocuemntHandler = middy(async (event) => {
 		return await rejectDocument(id, document, req);
 	}
 })
-	.use(bodyValidator(patchSchema))
+	.use(bodyValidator(patchDocSchema))
 	.use(queryParamsValidator(documentQuerySchema))
 	.use(errorHandler());

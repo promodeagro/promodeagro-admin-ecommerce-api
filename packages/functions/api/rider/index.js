@@ -71,12 +71,12 @@ export const getRider = async (id) => {
 	return rider;
 };
 
-export const activateRider = async (id) => {
+export const activateRider = async (id, req) => {
 	return await update(
 		riderTable,
 		{ id: id },
 		{
-			reviewStatus: "active",
+			reviewStatus: req.status,
 			rejectionReason: null,
 		}
 	);

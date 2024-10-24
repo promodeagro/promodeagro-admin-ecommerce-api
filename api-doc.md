@@ -516,7 +516,7 @@ This endpoint is used to activate or reject a rider based on the provided status
 
   Copy code
 
-  `{ "status": "verified" | "rejected", "reason": "string (optional, required if status is rejected)" }`
+  `{ "status": "active" |"inactive" |"rejected", "reason": "string (optional, required if status is rejected)" }`
 
 ### Response
 
