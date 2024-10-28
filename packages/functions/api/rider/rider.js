@@ -59,7 +59,7 @@ export const patchRiderHandler = middy(async (event) => {
 		return await rejectRider(id, req);
 	}
 })
-	.use(bodyValidator(patchSchema))
+	.use(bodyValidator(patchRiderSchema))
 	.use(errorHandler());
 
 const documentQuerySchema = z.object({

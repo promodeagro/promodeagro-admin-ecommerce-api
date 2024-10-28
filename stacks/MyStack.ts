@@ -336,6 +336,7 @@ export function API({ app, stack }: StackContext) {
 			"PUT /order/proceed": "packages/functions/api/order/proceed-order.handler",
 			"POST /runsheet": "packages/functions/api/runsheet/runsheet.createRunsheetHandler",
 			"GET /runsheet": "packages/functions/api/runsheet/runsheet.listRunsheetHandler",
+			"GET /runsheet/cash-collection": "packages/functions/api/runsheet/runsheet.cashCollectionListHandler",
 			"GET /runsheet/{id}": "packages/functions/api/runsheet/runsheet.getRunsheetHandler",
 			"PUT /runsheet/{id}/close": "packages/functions/api/runsheet/runsheet.closeRunsheetHandler",
 			"GET /rider": "packages/functions/api/rider/rider.listRidersHandler",

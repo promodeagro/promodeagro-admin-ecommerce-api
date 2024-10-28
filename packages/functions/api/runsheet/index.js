@@ -13,7 +13,6 @@ import {
 import { Table } from "sst/node/table";
 import { findAll, findById, save, update } from "../../common/data";
 import crypto from "crypto";
-import { Key } from "aws-cdk-lib/aws-kms";
 
 const client = new DynamoDBClient({ region: "ap-south-1" });
 const docClient = DynamoDBDocumentClient.from(client);
@@ -39,20 +38,61 @@ export const createRunsheet = async (req) => {
 			}),
 		};
 	}
-	const orders = await Promise.all(
-		req.orders.map((order) => findById(orderTable, order))
+	const ordersParams = {
+		RequestItems: {
+			[orderTable]: {
+				Keys: req.orders.map((orderId) => ({ id: orderId })),
+				ProjectionExpression: "id, paymentDetails, #status, totalPrice",
+				ExpressionAttributeNames: {
+					"#status": "status",
+				},
+			},
+		},
+	};
+	const ordersResponse = await docClient.send(
+		new BatchGetCommand(ordersParams)
 	);
-	const amountCollectable = orders
-		.filter((item) => (item.paymentDetails.method = "cash"))
+	const orders = ordersResponse.Responses[orderTable];
+	const validOrders = orders.filter((item) => item.status === "order placed");
+	if (validOrders.length == 0) {
+		return {
+			statusCode: 400,
+			body: JSON.stringify({
+				message:
+					"invalid orders: orders may already be assigneed or completed",
+			}),
+		};
+	}
+	const amountCollectable = validOrders
+		.filter((item) => item.paymentDetails.method === "cash")
 		.reduce((acc, order) => acc + parseInt(order.totalPrice), 0);
-
 	const runsheet = {
 		id: crypto.randomUUID().split("-")[4],
-		...req,
+		orders: validOrders.map((order) => order.id),
 		status: "pending",
 		amountCollectable,
+		riderId: req.riderId,
 	};
-	await save(runsheetTable, runsheet);
+	const transactItems = [
+		{
+			Put: {
+				TableName: runsheetTable,
+				Item: runsheet,
+			},
+		},
+		...validOrders.map((order) => ({
+			Update: {
+				TableName: orderTable,
+				Key: { id: order.id },
+				UpdateExpression: "SET #status = :newStatus",
+				ExpressionAttributeNames: { "#status": "status" },
+				ExpressionAttributeValues: { ":newStatus": "on the way" },
+			},
+		})),
+	];
+	await docClient.send(
+		new TransactWriteCommand({ TransactItems: transactItems })
+	);
 	return {
 		statusCode: 200,
 		body: JSON.stringify({ message: "created runsheet successfully" }),
@@ -185,9 +225,72 @@ export const runsheetSearch = async (query) => {
 	return await Promise.all(
 		idData.Items.map(async (item) => {
 			const rider = await findById(riderTable, item.riderId);
+			const riderDetails = {
+				id: item.riderId,
+				name: rider.personalDetails.fullName,
+				number: rider.number,
+			};
+			delete item.riderId;
 			return {
 				...item,
+				rider: riderDetails,
+			};
+		})
+	);
+};
+
+export const cashCollectionList = async (nextKey) => {
+	const params = {
+		TableName: runsheetTable,
+		Limit: 50,
+		ExclusiveStartKey: nextKey
+			? {
+					id: { S: nextKey },
+			  }
+			: undefined,
+		FilterExpression: "#st = :pendingStatus",
+		ExpressionAttributeNames: {
+			"#st": "status",
+		},
+		ExpressionAttributeValues: {
+			":pendingStatus": "pending",
+		},
+	};
+	const res = await docClient.send(new ScanCommand(params));
+	return await Promise.all(
+		res.Items.map(async (item) => {
+			const ordersParams = {
+				RequestItems: {
+					[orderTable]: {
+						Keys: item.orders.map((orderId) => ({ id: orderId })),
+						ProjectionExpression: "#status",
+						ExpressionAttributeNames: {
+							"#status": "status",
+						},
+					},
+				},
+			};
+			const ordersResponse = await docClient.send(
+				new BatchGetCommand(ordersParams)
+			);
+			const orders = ordersResponse.Responses[orderTable];
+			let deliveredCount = 0;
+			orders.forEach((item) => {
+				if (item.status === "delivered") {
+					deliveredCount++;
+				}
+			});
+			const rider = await findById(riderTable, item.riderId);
+			const riderDetails = {
+				id: item.riderId,
 				name: rider.personalDetails.fullName,
+				number: rider.number,
+			};
+			delete item.riderId;
+			return {
+				...item,
+				rider: riderDetails,
+				delivered: `${deliveredCount}/${orders.length}`,
 			};
 		})
 	);

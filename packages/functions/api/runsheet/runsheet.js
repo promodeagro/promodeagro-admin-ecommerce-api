@@ -8,6 +8,7 @@ import {
 	runsheetList,
 	closeRunsheet,
 	runsheetSearch,
+	cashCollectionList,
 } from ".";
 
 const runsheetSchema = z.object({
@@ -61,3 +62,8 @@ export const closeRunsheetHandler = middy(async (event) => {
 })
 	.use(bodyValidator(closeRunsheetSchema))
 	.use(errorHandler());
+
+export const cashCollectionListHandler = middy(async (event) => {
+	let nextKey = event.queryStringParameters?.pageKey || undefined;
+	return await cashCollectionList(nextKey);
+}).use(errorHandler());

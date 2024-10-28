@@ -3,6 +3,7 @@ import {
 	DynamoDBDocumentClient,
 	ScanCommand,
 	TransactWriteCommand,
+	QueryCommand,
 } from "@aws-sdk/lib-dynamodb";
 import { Table } from "sst/node/table";
 import { findById, update } from "../../common/data";
@@ -13,7 +14,7 @@ const docClient = DynamoDBDocumentClient.from(client);
 const orderTable = Table.OrdersTable.tableName;
 const inventoryTable = Table.inventoryTable.tableName;
 
-export const listOrdersInventory = async (type, date, nextKey) => {
+export const listOrdersInventory = async (type, date, status, nextKey) => {
 	let dateQuery;
 	let now = new Date();
 	let d = date;
@@ -37,7 +38,6 @@ export const listOrdersInventory = async (type, date, nextKey) => {
 		dateQuery = `createdAt > :date`;
 	}
 
-	console.log("dateQuery ", dateQuery);
 	const params = {
 		TableName: orderTable,
 		Limit: 50,
@@ -48,30 +48,41 @@ export const listOrdersInventory = async (type, date, nextKey) => {
 			: undefined,
 		IndexName: "statusCreatedAtIndex",
 		ScanIndexForward: false,
-		FilterExpression: dateQuery ? `${dateQuery}` : undefined, // Handle dateQuery properly
-		ExpressionAttributeValues: {
-			":date": now.toISOString(),
-		},
 	};
-	console.log(params);
-	if (type) {
-		params.FilterExpression = params.FilterExpression
-			? `${params.FilterExpression} AND paymentDetails.#m = :method`
-			: "paymentDetails.#m = :method";
 
-		params.ExpressionAttributeNames = {
-			...(params.ExpressionAttributeNames || {}), // Merge with existing, if any
-			"#m": "method",
-		};
+	let expressionValues = {
+		":date": now.toISOString(),
+	};
+	let expressionNames = {};
+	let command;
 
-		params.ExpressionAttributeValues = {
-			...(params.ExpressionAttributeValues || {}), // Merge with existing, if any
-			":method": type,
-		};
+	if (status) {
+		params.IndexName = "statusCreatedAtIndex";
+		params.KeyConditionExpression = "#s = :status AND " + dateQuery;
+		expressionNames["#s"] = "status";
+		expressionValues[":status"] = status;
+		if (type) {
+			params.FilterExpression = "paymentDetails.#m = :method";
+			expressionNames["#m"] = "method";
+			expressionValues[":method"] = type;
+		}
+		command = new QueryCommand(params);
+	} else {
+		params.FilterExpression = dateQuery;
+		if (type) {
+			params.FilterExpression += " AND paymentDetails.#m = :method";
+			expressionNames["#m"] = "method";
+			expressionValues[":method"] = type;
+		}
+		command = new ScanCommand(params);
 	}
-	console.log(params);
-	const command = new ScanCommand(params);
+
+	params.ExpressionAttributeNames =
+		Object.keys(expressionNames).length > 0 ? expressionNames : undefined;
+	params.ExpressionAttributeValues = expressionValues;
+
 	const data = await docClient.send(command);
+
 	if (data.LastEvaluatedKey) {
 		nextKey = data.LastEvaluatedKey.id;
 	} else {
