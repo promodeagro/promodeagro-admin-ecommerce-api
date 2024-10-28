@@ -393,8 +393,21 @@ Fetches a specific runsheet by its ID.
 
   ```
 
-  ## **Close Runsheet by ID**
+## Get Runsheet Cash Collection List
+**GET** `/runsheet/cash-collection`
 
+## Description
+Retrieves a list of cash collection runsheets with their associated order statuses and rider details. The response includes the count of delivered orders out of the total orders in each runsheet.
+
+## Query Parameters
+
+| Parameter   | Type     | Required | Description                              |
+|-------------|----------|----------|------------------------------------------|
+| `pageKey`   | String   | No       | A pagination token to fetch the next set of results. If not provided, the request retrieves the first set of results. |
+
+
+
+## **Close Runsheet by ID**
 **PUT** `/runsheet/{id}/close`
 
 closes a specific runsheet by its ID.
