@@ -72,6 +72,8 @@ export const createRunsheet = async (req) => {
 		status: "pending",
 		amountCollectable,
 		riderId: req.riderId,
+		createdAt: new Date().toISOString(),
+		updatedAt: new Date().toISOString(),
 	};
 	const transactItems = [
 		{
