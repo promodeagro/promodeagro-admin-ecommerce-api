@@ -187,11 +187,17 @@ export function API({ app, stack }: StackContext) {
 	const runsheetTable = new Table(stack, "runsheetTable", {
 		fields: {
 			id: "string",
-			riderId: "string"
+			riderId: "string",
+			status: "string",
+			createdAt: "string"
 		},
 		primaryIndex: { partitionKey: "id" },
 		globalIndexes: {
-			riderIndex: { partitionKey: "riderId" }
+			riderIndex: { partitionKey: "riderId" },
+			statusCreatedAtIndex: {
+				partitionKey: "status",
+				sortKey: "createdAt"
+			}
 		}
 	});
 	const riderTable = new Table(
@@ -209,7 +215,7 @@ export function API({ app, stack }: StackContext) {
 
 	bus.subscribe("Product.PriceUpdate", {
 		handler: "packages/functions/api/inventory/add-whatsapp-comm.handler",
-		bind: [API_URL, FACEBOOK_ACCESS_TOKEN, CATALOG_ID,inventoryTable]
+		bind: [API_URL, FACEBOOK_ACCESS_TOKEN, CATALOG_ID, inventoryTable]
 	});
 
 	const api = new Api(stack, "api", {

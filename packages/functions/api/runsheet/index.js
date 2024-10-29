@@ -127,7 +127,7 @@ export const getRunsheet = async (id) => {
 		Key: {
 			id: runsheet.riderId,
 		},
-		ProjectionExpression: "#pd.#fn", // Use aliases for nested fields
+		ProjectionExpression: "#pd.#fn",
 		ExpressionAttributeNames: {
 			"#pd": "personalDetails",
 			"#fn": "fullName",
@@ -241,59 +241,112 @@ export const runsheetSearch = async (query) => {
 	);
 };
 
-export const cashCollectionList = async (nextKey) => {
+export const cashCollectionList = async (status, nextKey) => {
 	const params = {
 		TableName: runsheetTable,
+		IndexName: "statusCreatedAtIndex",
+		KeyConditionExpression: "#st = :status",
+		ExpressionAttributeNames: {
+			"#st": "status",
+		},
+		ExpressionAttributeValues: {
+			":status": status,
+		},
+		ScanIndexForward: false,
 		Limit: 50,
 		ExclusiveStartKey: nextKey
 			? {
 					id: { S: nextKey },
 			  }
 			: undefined,
-		FilterExpression: "#st = :pendingStatus",
+	};
+	const res = await docClient.send(new QueryCommand(params));
+	return await Promise.all(
+		res.Items.map(async (item) => await commonRunsheetFunc(item))
+	);
+};
+
+export const cashCollectionSearch = async (query) => {
+	const idParams = {
+		TableName: runsheetTable,
+		FilterExpression: "contains(#id, :query)",
 		ExpressionAttributeNames: {
-			"#st": "status",
+			"#id": "id",
 		},
 		ExpressionAttributeValues: {
-			":pendingStatus": "pending",
+			":query": query,
 		},
 	};
-	const res = await docClient.send(new ScanCommand(params));
-	return await Promise.all(
-		res.Items.map(async (item) => {
-			const ordersParams = {
-				RequestItems: {
-					[orderTable]: {
-						Keys: item.orders.map((orderId) => ({ id: orderId })),
-						ProjectionExpression: "#status",
-						ExpressionAttributeNames: {
-							"#status": "status",
-						},
+	const idData = await docClient.send(new ScanCommand(idParams));
+	if (idData.Items.length == 0) {
+		const params = {
+			TableName: riderTable,
+			FilterExpression: "contains(personalDetails.#fullName, :query)",
+			ExpressionAttributeNames: {
+				"#fullName": "fullName",
+			},
+			ExpressionAttributeValues: {
+				":query": query,
+			},
+		};
+		const command = new ScanCommand(params);
+		const data = await docClient.send(command);
+		const riderData = await Promise.all(
+			data.Items.map((rider) => {
+				const params = {
+					TableName: runsheetTable,
+					IndexName: "riderIndex",
+					KeyConditionExpression: "riderId = :riderId",
+					ExpressionAttributeValues: {
+						":riderId": rider.id,
 					},
-				},
-			};
-			const ordersResponse = await docClient.send(
-				new BatchGetCommand(ordersParams)
-			);
-			const orders = ordersResponse.Responses[orderTable];
-			let deliveredCount = 0;
-			orders.forEach((item) => {
-				if (item.status === "delivered") {
-					deliveredCount++;
-				}
-			});
-			const rider = await findById(riderTable, item.riderId);
-			const riderDetails = {
-				id: item.riderId,
-				name: rider.personalDetails.fullName,
-				number: rider.number,
-			};
-			delete item.riderId;
-			return {
-				...item,
-				rider: riderDetails,
-				delivered: `${deliveredCount}/${orders.length}`,
-			};
-		})
+				};
+				const runsheetCommand = new QueryCommand(params);
+				return client.send(runsheetCommand);
+			})
+		);
+		const arr = riderData.flatMap((item) => item.Items);
+		return await Promise.all(
+			arr.map(async (item) => await commonRunsheetFunc(item))
+		);
+	}
+	return await Promise.all(
+		idData.Items.map(async (item) => await commonRunsheetFunc(item))
 	);
+};
+
+const commonRunsheetFunc = async (item) => {
+	const ordersParams = {
+		RequestItems: {
+			[orderTable]: {
+				Keys: item.orders.map((orderId) => ({ id: orderId })),
+				ProjectionExpression: "#status",
+				ExpressionAttributeNames: {
+					"#status": "status",
+				},
+			},
+		},
+	};
+	const ordersResponse = await docClient.send(
+		new BatchGetCommand(ordersParams)
+	);
+	const orders = ordersResponse.Responses[orderTable];
+	let deliveredCount = 0;
+	orders.forEach((item) => {
+		if (item.status === "delivered") {
+			deliveredCount++;
+		}
+	});
+	const rider = await findById(riderTable, item.riderId);
+	const riderDetails = {
+		id: item.riderId,
+		name: rider.personalDetails.fullName,
+		number: rider.number,
+	};
+	delete item.riderId;
+	return {
+		...item,
+		rider: riderDetails,
+		delivered: `${deliveredCount}/${orders.length}`,
+	};
 };

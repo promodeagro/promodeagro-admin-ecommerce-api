@@ -404,6 +404,8 @@ Retrieves a list of cash collection runsheets with their associated order status
 | Parameter   | Type     | Required | Description                              |
 |-------------|----------|----------|------------------------------------------|
 | `pageKey`   | String   | No       | A pagination token to fetch the next set of results. If not provided, the request retrieves the first set of results. |
+| `status`   | String   | No       | can be 'active' or 'pending'. if neither of it or invalid is provied default sets to pending |
+| `search`   | String   | No       | takes the id of the runsheet or  name of the rider(Casesensitive) runsheet assigned to|
 
 
 

@@ -9,6 +9,7 @@ import {
 	closeRunsheet,
 	runsheetSearch,
 	cashCollectionList,
+	cashCollectionSearch,
 } from ".";
 
 const runsheetSchema = z.object({
@@ -26,7 +27,6 @@ export const createRunsheetHandler = middy(async (event) => {
 export const listRunsheetHandler = middy(async (event) => {
 	let search = event.queryStringParameters?.search || undefined;
 	if (search) {
-		console.log(search);
 		return await runsheetSearch(search);
 	}
 	let nextKey = event.queryStringParameters?.pageKey || undefined;
@@ -65,5 +65,13 @@ export const closeRunsheetHandler = middy(async (event) => {
 
 export const cashCollectionListHandler = middy(async (event) => {
 	let nextKey = event.queryStringParameters?.pageKey || undefined;
-	return await cashCollectionList(nextKey);
+	let status = event.queryStringParameters?.status || undefined;
+	let search = event.queryStringParameters?.search || undefined;
+	if (search) {
+		return await cashCollectionSearch(search);
+	}
+	if (status !== "closed" && status !== "pending") {
+		status = "pending";
+	}
+	return await cashCollectionList(status, nextKey);
 }).use(errorHandler());
