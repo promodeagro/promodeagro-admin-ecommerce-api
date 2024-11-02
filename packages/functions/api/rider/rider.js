@@ -7,7 +7,6 @@ import {
 	getRider,
 	activateRider,
 	verifyDocument,
-	rejectDocument,
 	rejectRider,
 } from ".";
 import { queryParamsValidator } from "../util/queryParamsValidator";
@@ -71,6 +70,7 @@ const documentQuerySchema = z.object({
 		"dl",
 		"vehicleImage",
 		"rcBook",
+		"bankDetails",
 	]),
 });
 
@@ -99,11 +99,7 @@ export const patchDocuemntHandler = middy(async (event) => {
 	}
 	let document = event.queryStringParameters?.name || undefined;
 	const req = JSON.parse(event.body);
-	if (req.status === "verified") {
-		return await verifyDocument(id, document, req);
-	} else {
-		return await rejectDocument(id, document, req);
-	}
+	return await verifyDocument(id, document, req);
 })
 	.use(bodyValidator(patchDocSchema))
 	.use(queryParamsValidator(documentQuerySchema))

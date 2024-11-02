@@ -105,17 +105,31 @@ export const verifyDocument = async (id, document, req) => {
 			body: JSON.stringify({ message: "rider not found" }),
 		};
 	}
+	if (document === "bankDetails") {
+		rider.bankDetails.status = req.status;
+		if (req.status === "verified") {
+			rider.profileStatus.bankDetailsCompleted = true;
+			rider.bankDetails.reason = null;
+		}
+		if (req.status === "rejected") {
+			rider.bankDetails.reason = req.reason;
+		}
+		return await update(
+			riderTable,
+			{ id: id },
+			{
+				bankDetails: rider.bankDetails,
+				profileStatus: rider.profileStatus,
+			}
+		);
+	}
 	const documents = rider.documents;
 	const a = documents.filter((item) => item.name === document);
-	a[0].verified = req.status;
-	return await update(riderTable, { id: id }, { documents: documents });
-};
-
-export const rejectDocument = async (id, document, req) => {
-	const rider = await findById(riderTable, id);
-	const documents = rider.documents;
-	const a = documents.filter((item) => item.hasOwnProperty(document));
-	a[0].verified = req.status;
-	a[0].rejectionReason = req.reason;
+	if (req.status === "verified") {
+		a[0].verified = req.status;
+	}
+	if (req.status === "rejected") {
+		a[0].rejectionReason = req.reason;
+	}
 	return await update(riderTable, { id: id }, { documents: documents });
 };
