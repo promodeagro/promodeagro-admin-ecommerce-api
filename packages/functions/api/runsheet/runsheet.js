@@ -67,11 +67,15 @@ export const cashCollectionListHandler = middy(async (event) => {
 	let nextKey = event.queryStringParameters?.pageKey || undefined;
 	let status = event.queryStringParameters?.status || undefined;
 	let search = event.queryStringParameters?.search || undefined;
+	let date = event.queryStringParameters?.date || undefined;
 	if (search) {
 		return await cashCollectionSearch(search);
 	}
 	if (status !== "closed" && status !== "pending") {
 		status = "pending";
 	}
-	return await cashCollectionList(status, nextKey);
+	// if (date == undefined) {
+	// 	date = new Date().toISOString();
+	// }
+	return await cashCollectionList(status, date, nextKey);
 }).use(errorHandler());

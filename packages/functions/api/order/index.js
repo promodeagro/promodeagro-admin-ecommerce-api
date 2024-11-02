@@ -43,10 +43,10 @@ export const listOrdersInventory = async (type, date, status, nextKey) => {
 		Limit: 50,
 		ExclusiveStartKey: nextKey
 			? {
-					id: { S: nextKey },
+					id: nextKey,
 			  }
 			: undefined,
-		IndexName: "statusCreatedAtIndex",
+		IndexName: nextKey ? undefined : "statusCreatedAtIndex",
 		ScanIndexForward: false,
 	};
 
@@ -66,7 +66,6 @@ export const listOrdersInventory = async (type, date, status, nextKey) => {
 			expressionNames["#m"] = "method";
 			expressionValues[":method"] = type;
 		}
-		command = new QueryCommand(params);
 	} else {
 		params.FilterExpression = dateQuery;
 		if (type) {
@@ -74,12 +73,13 @@ export const listOrdersInventory = async (type, date, status, nextKey) => {
 			expressionNames["#m"] = "method";
 			expressionValues[":method"] = type;
 		}
-		command = new ScanCommand(params);
 	}
 
 	params.ExpressionAttributeNames =
 		Object.keys(expressionNames).length > 0 ? expressionNames : undefined;
 	params.ExpressionAttributeValues = expressionValues;
+
+	command = status ? new QueryCommand(params) : new ScanCommand(params);
 
 	const data = await docClient.send(command);
 

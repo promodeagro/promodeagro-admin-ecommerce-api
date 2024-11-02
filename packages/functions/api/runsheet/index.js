@@ -241,7 +241,17 @@ export const runsheetSearch = async (query) => {
 	);
 };
 
-export const cashCollectionList = async (status, nextKey) => {
+export const cashCollectionList = async (status, date, nextKey) => {
+	let startISO, endISO;
+	if (date) {
+		const startOfDay = new Date(date);
+		startOfDay.setUTCHours(0, 0, 0, 0);
+		startISO = startOfDay.toISOString();
+
+		const endOfDay = new Date(date);
+		endOfDay.setUTCHours(23, 59, 59, 999);
+		endISO = endOfDay.toISOString();
+	}
 	const params = {
 		TableName: runsheetTable,
 		IndexName: "statusCreatedAtIndex",
@@ -260,6 +270,14 @@ export const cashCollectionList = async (status, nextKey) => {
 			  }
 			: undefined,
 	};
+	if (date) {
+		params.KeyConditionExpression +=
+			" AND #createdAt BETWEEN :startOfDay AND :endOfDay";
+		params.ExpressionAttributeNames["#createdAt"] = "createdAt";
+		params.ExpressionAttributeNames[":startOfDay"] = startISO;
+		params.ExpressionAttributeNames[":endOfDay"] = endISO;
+	}
+	console.log(JSON.stringify(params, null, 2));
 	const res = await docClient.send(new QueryCommand(params));
 	return await Promise.all(
 		res.Items.map(async (item) => await commonRunsheetFunc(item))

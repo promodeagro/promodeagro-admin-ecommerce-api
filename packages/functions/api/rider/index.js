@@ -106,7 +106,7 @@ export const verifyDocument = async (id, document, req) => {
 		};
 	}
 	const documents = rider.documents;
-	const a = documents.filter((item) => item.hasOwnProperty(document));
+	const a = documents.filter((item) => item.name === document);
 	a[0].verified = req.status;
 	return await update(riderTable, { id: id }, { documents: documents });
 };
