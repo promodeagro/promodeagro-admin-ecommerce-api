@@ -33,15 +33,10 @@ const patchRiderSchema = z
 		status: z.enum(["active", "inactive", "rejected"]),
 		reason: z.string().optional(),
 	})
-	.refine(
-		(data) =>
-			data.status === "verified" ||
-			(data.status === "rejected" && data.reason),
-		{
-			message: "Reason is required when status is 'rejected'",
-			path: ["reason"],
-		}
-	);
+	.refine((data) => data.status !== "rejected" || data.reason, {
+		message: "Reason is required when status is 'rejected'",
+		path: ["reason"],
+	});
 
 export const patchRiderHandler = middy(async (event) => {
 	let id = event.pathParameters?.id;
@@ -52,6 +47,7 @@ export const patchRiderHandler = middy(async (event) => {
 		};
 	}
 	const req = JSON.parse(event.body);
+	console.log(JSON.stringify(req, null, 2));
 	if (req.status == "active" || req.status == "inactive") {
 		return await activateRider(id, req);
 	} else {

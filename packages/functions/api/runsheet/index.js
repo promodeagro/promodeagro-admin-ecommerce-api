@@ -274,10 +274,9 @@ export const cashCollectionList = async (status, date, nextKey) => {
 		params.KeyConditionExpression +=
 			" AND #createdAt BETWEEN :startOfDay AND :endOfDay";
 		params.ExpressionAttributeNames["#createdAt"] = "createdAt";
-		params.ExpressionAttributeNames[":startOfDay"] = startISO;
-		params.ExpressionAttributeNames[":endOfDay"] = endISO;
+		params.ExpressionAttributeValues[":startOfDay"] = startISO;
+		params.ExpressionAttributeValues[":endOfDay"] = endISO;
 	}
-	console.log(JSON.stringify(params, null, 2));
 	const res = await docClient.send(new QueryCommand(params));
 	return await Promise.all(
 		res.Items.map(async (item) => await commonRunsheetFunc(item))
