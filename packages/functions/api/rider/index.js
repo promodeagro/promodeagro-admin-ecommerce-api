@@ -129,6 +129,7 @@ export const verifyDocument = async (id, document, req) => {
 		a[0].verified = req.status;
 	}
 	if (req.status === "rejected") {
+		a[0].verified = req.status;
 		a[0].rejectionReason = req.reason;
 	}
 	return await update(riderTable, { id: id }, { documents: documents });
