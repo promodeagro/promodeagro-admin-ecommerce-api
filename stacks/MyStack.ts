@@ -125,7 +125,7 @@ export function API({ app, stack }: StackContext) {
 		primaryIndex: { partitionKey: "orderId", sortKey: "productId" },
 	});
 
-	const cognito = use(AuthStack);
+	const { cognito, cognito1 } = use(AuthStack);
 
 	const inventoryTable = new Table(stack, "inventoryTable", {
 		fields: {
@@ -248,8 +248,42 @@ export function API({ app, stack }: StackContext) {
 				function: {
 					handler: "packages/functions/api/auth/auth.signup",
 					environment: {
-						USER_POOL_ID: cognito.userPoolId,
-						COGNITO_CLIENT: cognito.userPoolClientId,
+						USER_POOL_ID: cognito1.userPoolId,
+						COGNITO_CLIENT: cognito1.userPoolClientId,
+					},
+					permissions: [
+						"cognito-idp:AdminCreateUser",
+						"cognito-idp:AdminConfirmSignUp",
+						"cognito-idp:AdminUpdateUserAttributes",
+						"cognito-idp:AdminSetUserPassword",
+					],
+				},
+			},
+			"POST /auth/numbersignup": {
+				authorizer: "none",
+				function: {
+					handler: "packages/functions/api/auth/auth.numbersignin",
+					environment: {
+						USER_POOL_ID: cognito1.userPoolId,
+						COGNITO_CLIENT: cognito1.userPoolClientId,
+					},
+					permissions: [
+						"cognito-idp:AdminCreateUser",
+						"cognito-idp:AdminConfirmSignUp",
+						"cognito-idp:AdminUpdateUserAttributes",
+						"cognito-idp:AdminSetUserPassword",
+						"cognito-idp:AdminInitiateAuth"
+					],
+				},
+			},
+
+			"POST /auth/numbersign": {
+				authorizer: "none",
+				function: {
+					handler: "packages/functions/api/auth/auth.numbersign",
+					environment: {
+						USER_POOL_ID: cognito1.userPoolId,
+						COGNITO_CLIENT: cognito1.userPoolClientId,
 					},
 					permissions: [
 						"cognito-idp:AdminCreateUser",
@@ -264,8 +298,8 @@ export function API({ app, stack }: StackContext) {
 				function: {
 					handler: "packages/functions/api/auth/auth.signin",
 					environment: {
-						USER_POOL_ID: cognito.userPoolId,
-						COGNITO_CLIENT: cognito.userPoolClientId,
+						USER_POOL_ID: cognito1.userPoolId,
+						COGNITO_CLIENT: cognito1.userPoolClientId,
 					},
 				},
 			},
@@ -274,8 +308,8 @@ export function API({ app, stack }: StackContext) {
 				function: {
 					handler: "packages/functions/api/auth/auth.signout",
 					environment: {
-						USER_POOL_ID: cognito.userPoolId,
-						COGNITO_CLIENT: cognito.userPoolClientId,
+						USER_POOL_ID: cognito1.userPoolId,
+						COGNITO_CLIENT: cognito1.userPoolClientId,
 					},
 				},
 			},
@@ -284,8 +318,8 @@ export function API({ app, stack }: StackContext) {
 				function: {
 					handler: "packages/functions/api/auth/auth.forgotPassword",
 					environment: {
-						USER_POOL_ID: cognito.userPoolId,
-						COGNITO_CLIENT: cognito.userPoolClientId,
+						USER_POOL_ID: cognito1.userPoolId,
+						COGNITO_CLIENT: cognito1.userPoolClientId,
 					},
 				},
 			},
@@ -294,8 +328,8 @@ export function API({ app, stack }: StackContext) {
 				function: {
 					handler: "packages/functions/api/auth/auth.resetPassword",
 					environment: {
-						USER_POOL_ID: cognito.userPoolId,
-						COGNITO_CLIENT: cognito.userPoolClientId,
+						USER_POOL_ID: cognito1.userPoolId,
+						COGNITO_CLIENT: cognito1.userPoolClientId,
 					},
 				},
 			},
@@ -304,8 +338,8 @@ export function API({ app, stack }: StackContext) {
 				function: {
 					handler: "packages/functions/api/auth/auth.changePassword",
 					environment: {
-						USER_POOL_ID: cognito.userPoolId,
-						COGNITO_CLIENT: cognito.userPoolClientId,
+						USER_POOL_ID: cognito1.userPoolId,
+						COGNITO_CLIENT: cognito1.userPoolClientId,
 					},
 					permissions: ["cognito-idp:AdminInitiateAuth"],
 				},
@@ -361,6 +395,7 @@ export function API({ app, stack }: StackContext) {
 
 	return {
 		api,
-		OrdersTable
+		OrdersTable,
+		riderTable
 	};
 }

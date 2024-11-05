@@ -12,6 +12,7 @@ import {
 	RespondToAuthChallengeCommand,
 	GlobalSignOutCommand,
 } from "@aws-sdk/client-cognito-identity-provider";
+import crypto from "crypto";
 import z from "zod";
 
 const cognitoClient = new CognitoIdentityProviderClient({
@@ -59,49 +60,45 @@ export const signin = middy(async (event) => {
 	.use(bodyValidator(signinSchema))
 	.use(errorHandler());
 
-export const signup = async (event) => {
-	console.log("1");
+const signupSchema = z.object({
+	email: emailSchema,
+	password: passwordSchema,
+	role: z.enum(["admin", "packer"]),
+	name: z.string(),
+});
+export const signup = middy(async (event) => {
 	const { name, email, role, password } = JSON.parse(event.body);
-	try {
-		console.log(process.env.USER_POOL_ID);
-		const adminCreateUserParams = {
-			UserPoolId: process.env.USER_POOL_ID,
-			Username: email,
-			UserAttributes: [
-				{ Name: "email", Value: email },
-				{ Name: "name", Value: name },
-				{ Name: "custom:role", Value: role },
-				{ Name: "email_verified", Value: "true" },
-			],
-			MessageAction: "SUPPRESS",
-		};
-		await cognitoClient.send(
-			new AdminCreateUserCommand(adminCreateUserParams)
-		);
+	const adminCreateUserParams = {
+		UserPoolId: process.env.USER_POOL_ID,
+		Username: email,
+		UserAttributes: [
+			{ Name: "email", Value: email },
+			{ Name: "name", Value: name },
+			{ Name: "custom:role", Value: role },
+			{ Name: "email_verified", Value: "true" },
+		],
+		MessageAction: "SUPPRESS",
+	};
+	await cognitoClient.send(new AdminCreateUserCommand(adminCreateUserParams));
 
-		// Set the user's password
-		const adminSetUserPasswordParams = {
-			UserPoolId: process.env.USER_POOL_ID,
-			Username: email,
-			Password: password,
-			Permanent: true,
-		};
-		await cognitoClient.send(
-			new AdminSetUserPasswordCommand(adminSetUserPasswordParams)
-		);
+	// Set the user's password
+	const adminSetUserPasswordParams = {
+		UserPoolId: process.env.USER_POOL_ID,
+		Username: email,
+		Password: password,
+		Permanent: true,
+	};
+	await cognitoClient.send(
+		new AdminSetUserPasswordCommand(adminSetUserPasswordParams)
+	);
 
-		return {
-			statusCode: 200,
-			body: JSON.stringify({ message: "User created successfully" }),
-		};
-	} catch (error) {
-		console.error("Error creating user:", error);
-		return {
-			statusCode: 500,
-			body: JSON.stringify({ message: error.message }),
-		};
-	}
-};
+	return {
+		statusCode: 200,
+		body: JSON.stringify({ message: "User created successfully" }),
+	};
+})
+	.use(bodyValidator(signupSchema))
+	.use(errorHandler());
 
 const forgotPassSchema = z.object({
 	email: emailSchema,
@@ -222,3 +219,133 @@ export const signout = middy(async (event) => {
 })
 	.use(bodyValidator(signoutSchema))
 	.use(errorHandler());
+
+import { numberExists, saveOtp, validateOtp, createRider } from ".";
+
+const phoneNumberSchema = z.object({
+	number: z.string().regex(/^\d{10}$/, {
+		message: "Invalid phone number. Must be exactly 10 digits.",
+	}),
+	// userType: z.enum(["rider"]),
+});
+
+const createUser = async (number, otp, userType) => {
+	if (userType === "rider") {
+		return await createRider(number, otp);
+	} else {
+		return await createPacker(number, otp);
+	}
+};
+
+export const numbersignin = middy(async (event) => {
+	const { number, userType } = JSON.parse(event.body);
+	const item = await numberExists(number, userType);
+	console.log(1);
+	if (item && item.length > 0) {
+		const command = new AdminInitiateAuthCommand({
+			AuthFlow: "CUSTOM_AUTH",
+			UserPoolId: process.env.USER_POOL_ID,
+			ClientId: process.env.COGNITO_CLIENT,
+			AuthParameters: {
+				USERNAME: number,
+			},
+		});
+
+		const response = await cognitoClient.send(command);
+
+		return {
+			statusCode: 200,
+			body: JSON.stringify({
+				message: "OTP sent successfully",
+				session: response.session,
+			}),
+		};
+	}
+
+	console.log(2);
+	const userId = crypto.randomUUID();
+	const date = new Date();
+	const createCommand = new AdminCreateUserCommand({
+		UserPoolId: process.env.USER_POOL_ID,
+		Username: `+91${number}`,
+		UserAttributes: [
+			{ Name: "phone_number", Value: `+91${number}` },
+			{ Name: "custom:userId", Value: userId },
+			{ Name: "custom:role", Value: "rider" },
+		],
+		MessageAction: "SUPPRESS",
+	});
+	console.log(JSON.stringify(createCommand, null, 2));
+	console.log(3);
+	await cognitoClient.send(createCommand);
+	console.log(4);
+	return {
+		statusCode: 200,
+		body: JSON.stringify({
+			message: "rider crerated  successfully",
+		}),
+	};
+})
+	.use(bodyValidator(phoneNumberSchema))
+	.use(errorHandler());
+
+const validateOtpSchema = z.object({
+	number: phoneNumberSchema.shape.number,
+	otp: z.string().regex(/^\d{6}$/, {
+		message: "Otp. Must be exactly 6 digits.",
+	}),
+	userType: z.enum(["rider", "packer"]),
+});
+
+export const validateOtpHandler = middy(async (event) => {
+	const { otp, number, userType } = JSON.parse(event.body);
+	return validateOtp(otp, number, userType);
+})
+	.use(bodyValidator(validateOtpSchema))
+	.use(errorHandler());
+
+// export const authorizerHandler = async (event) => {
+// 	return authorizer(event);
+// };
+
+// const refreshTokenSchema = z.object({
+// 	refreshToken: z.string(),
+// });
+
+// export const refreshAccessTokenHandler = middy(async (event) => {
+// 	const { refreshToken } = JSON.parse(event.body);
+// 	return refreshAccessToken(refreshToken);
+// })
+// 	.use(bodyValidator(refreshTokenSchema))
+// 	.use(errorHandler());
+
+export const numbersign = middy(async (event) => {
+	const body = JSON.parse(event.body);
+	const { number, code } = body;
+	// Verify OTP
+	console.log(1);
+	const command = new RespondToAuthChallengeCommand({
+		ClientId: process.env.COGNITO_CLIENT,
+		ChallengeName: "CUSTOM_CHALLENGE",
+		ChallengeResponses: {
+			USERNAME: number,
+			ANSWER: code,
+		},
+	});
+	console.log(2);
+
+	const response = await cognitoClient.send(command);
+	console.log(3);
+
+	return {
+		statusCode: 200,
+		body: JSON.stringify({
+			message: "Signed in successfully",
+			tokens: {
+				accessToken: response.AuthenticationResult?.AccessToken,
+				idToken: response.AuthenticationResult?.IdToken,
+				refreshToken: response.AuthenticationResult?.RefreshToken,
+			},
+		}),
+	};
+}).use(errorHandler());

@@ -5,8 +5,14 @@
 		"moduleResolution": "node",
 		"baseUrl": ".",
 		"paths": {
-			"@promodeargo-admin/core/*": ["../core/src/*"]
-		}
+			"@promodeargo-admin/packages/*": ["../packages/*"]
+		},
+		"allowJs": true, // Enable JavaScript files in TypeScript
+		"checkJs": true, // Optionally, enable type-checking for JavaScript files
+		"resolveJsonModule": true, // Allow importing .json files
+		"esModuleInterop": true, // Enable compatibility with CommonJS modules
+		"skipLibCheck": true // Skip library checking for faster compilation
 	},
-	"exclude": ["**/*.js"]
+	"include": ["packages/**/*"], // Include both JS and TS files in the `packages` folder
+	"exclude": ["node_modules"]
 }
