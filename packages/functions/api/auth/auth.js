@@ -1,18 +1,22 @@
+import {
+	AdminCreateUserCommand,
+	AdminInitiateAuthCommand,
+	CognitoIdentityProviderClient,
+	GlobalSignOutCommand,
+	RespondToAuthChallengeCommand,
+} from "@aws-sdk/client-cognito-identity-provider";
 import middy from "@middy/core";
+import crypto from "crypto";
+import z from "zod";
+import {
+	forgotPassword,
+	refreshTokens,
+	resetPassword,
+	signin,
+	signup,
+} from ".";
 import { bodyValidator } from "../util/bodyValidator";
 import { errorHandler } from "../util/errorHandler";
-import {
-	CognitoIdentityProviderClient,
-	InitiateAuthCommand,
-	ForgotPasswordCommand,
-	AdminCreateUserCommand,
-	AdminSetUserPasswordCommand,
-	ConfirmForgotPasswordCommand,
-	AdminInitiateAuthCommand,
-	RespondToAuthChallengeCommand,
-	GlobalSignOutCommand,
-} from "@aws-sdk/client-cognito-identity-provider";
-import z from "zod";
 
 const cognitoClient = new CognitoIdentityProviderClient({
 	region: "ap-south-1",
@@ -31,93 +35,35 @@ const signinSchema = z.object({
 	email: emailSchema,
 	password: passwordSchema,
 });
-export const signin = middy(async (event) => {
-	const { email, password } = JSON.parse(event.body);
-	const authParams = {
-		AuthFlow: "USER_PASSWORD_AUTH",
-		ClientId: process.env.COGNITO_CLIENT,
-		AuthParameters: {
-			USERNAME: email,
-			PASSWORD: password,
-		},
-	};
 
-	const authCommand = new InitiateAuthCommand(authParams);
-	const authResponse = await cognitoClient.send(authCommand);
-	const accessToken = authResponse.AuthenticationResult?.AccessToken;
-	const idToken = authResponse.AuthenticationResult?.IdToken;
-	const refreshToken = authResponse.AuthenticationResult?.RefreshToken;
-	return {
-		statusCode: 200,
-		body: JSON.stringify({
-			accessToken: accessToken,
-			idToken: idToken,
-			refreshToken: refreshToken,
-		}),
-	};
+export const signinHandler = middy(async (event) => {
+	const req = JSON.parse(event.body);
+	return signin(req);
 })
 	.use(bodyValidator(signinSchema))
 	.use(errorHandler());
 
-export const signup = async (event) => {
-	console.log("1");
-	const { name, email, role, password } = JSON.parse(event.body);
-	try {
-		console.log(process.env.USER_POOL_ID);
-		const adminCreateUserParams = {
-			UserPoolId: process.env.USER_POOL_ID,
-			Username: email,
-			UserAttributes: [
-				{ Name: "email", Value: email },
-				{ Name: "name", Value: name },
-				{ Name: "custom:role", Value: role },
-				{ Name: "email_verified", Value: "true" },
-			],
-			MessageAction: "SUPPRESS",
-		};
-		await cognitoClient.send(
-			new AdminCreateUserCommand(adminCreateUserParams)
-		);
+const signupSchema = z.object({
+	email: emailSchema,
+	password: passwordSchema,
+	role: z.enum(["admin", "packer"]),
+	name: z.string(),
+});
 
-		// Set the user's password
-		const adminSetUserPasswordParams = {
-			UserPoolId: process.env.USER_POOL_ID,
-			Username: email,
-			Password: password,
-			Permanent: true,
-		};
-		await cognitoClient.send(
-			new AdminSetUserPasswordCommand(adminSetUserPasswordParams)
-		);
-
-		return {
-			statusCode: 200,
-			body: JSON.stringify({ message: "User created successfully" }),
-		};
-	} catch (error) {
-		console.error("Error creating user:", error);
-		return {
-			statusCode: 500,
-			body: JSON.stringify({ message: error.message }),
-		};
-	}
-};
+export const signupHandler = middy(async (event) => {
+	const req = JSON.parse(event.body);
+	return await signup(req);
+})
+	.use(bodyValidator(signupSchema))
+	.use(errorHandler());
 
 const forgotPassSchema = z.object({
 	email: emailSchema,
 });
 
-export const forgotPassword = middy(async (event) => {
+export const forgotPasswordHandler = middy(async (event) => {
 	const { email } = JSON.parse(event.body);
-	const forgotPasswordParams = {
-		ClientId: process.env.COGNITO_CLIENT,
-		Username: email,
-	};
-	const forgotPasswordCommand = new ForgotPasswordCommand(
-		forgotPasswordParams
-	);
-	await cognitoClient.send(forgotPasswordCommand);
-
+	await forgotPassword(email);
 	return {
 		statusCode: 200,
 		body: JSON.stringify({
@@ -134,16 +80,9 @@ const resetPasswordSchema = z.object({
 	newPassword: passwordSchema,
 });
 
-export const resetPassword = middy(async (event) => {
-	const { email, confirmationCode, newPassword } = JSON.parse(event.body);
-	const input = {
-		ClientId: process.env.COGNITO_CLIENT,
-		Username: email,
-		ConfirmationCode: confirmationCode,
-		Password: newPassword,
-	};
-	const command = new ConfirmForgotPasswordCommand(input);
-	await cognitoClient.send(command);
+export const resetPasswordHandler = middy(async (event) => {
+	const req = JSON.parse(event.body);
+	await resetPassword(req);
 	return {
 		statusCode: 200,
 		body: JSON.stringify({
@@ -172,7 +111,6 @@ export const changePassword = async (event) => {
 		const authResponse = await cognitoClient.send(
 			new AdminInitiateAuthCommand(inputAuth)
 		);
-		console.log(JSON.stringify(authResponse));
 		const authChallengeInput = {
 			ChallengeName: "NEW_PASSWORD_REQUIRED",
 			ClientId: process.env.COGNITO_CLIENT,
@@ -200,6 +138,17 @@ export const changePassword = async (event) => {
 	}
 };
 
+const refreshTokenSchema = z.object({
+	refreshToken: z.string(),
+});
+
+export const refreshAccessTokenHandler = middy(async (event) => {
+	const { refreshToken } = JSON.parse(event.body);
+	return refreshTokens(refreshToken);
+})
+	.use(bodyValidator(refreshTokenSchema))
+	.use(errorHandler());
+
 const signoutSchema = z.object({
 	accessToken: z.string(),
 });
@@ -222,3 +171,116 @@ export const signout = middy(async (event) => {
 })
 	.use(bodyValidator(signoutSchema))
 	.use(errorHandler());
+
+import { createRider, numberExists, validateOtp } from ".";
+
+const phoneNumberSchema = z.object({
+	number: z.string().regex(/^\d{10}$/, {
+		message: "Invalid phone number. Must be exactly 10 digits.",
+	}),
+	// userType: z.enum(["rider"]),
+});
+
+const createUser = async (number, otp, userType) => {
+	if (userType === "rider") {
+		return await createRider(number, otp);
+	} else {
+		return await createPacker(number, otp);
+	}
+};
+
+export const numbersignin = middy(async (event) => {
+	const { number, userType } = JSON.parse(event.body);
+	console.log();
+	const item = await numberExists(number, userType);
+	if (item && item.length > 0) {
+		const command = new AdminInitiateAuthCommand({
+			AuthFlow: "CUSTOM_AUTH",
+			UserPoolId: process.env.USER_POOL_ID,
+			ClientId: process.env.COGNITO_CLIENT,
+			AuthParameters: {
+				USERNAME: `+91${number}`,
+			},
+		});
+		const response = await cognitoClient.send(command);
+
+		return {
+			statusCode: 200,
+			body: JSON.stringify({
+				message: "OTP sent successfully",
+				session: response.Session,
+			}),
+		};
+	}
+
+	console.log(2);
+	const userId = crypto.randomUUID();
+	const date = new Date();
+	const utc = utcDate(date);
+	const createCommand = new AdminCreateUserCommand({
+		UserPoolId: process.env.USER_POOL_ID,
+		Username: `+91${number}`,
+		UserAttributes: [
+			{ Name: "phone_number", Value: `+91${number}` },
+			{ Name: "custom:userId", Value: userId },
+			{ Name: "custom:role", Value: "rider" },
+			{ Name: "custom:createdAt", Value: utc },
+			{ Name: "phone_number_verified", Value: "true" },
+		],
+		MessageAction: "SUPPRESS",
+	});
+	await createRider(number);
+	await cognitoClient.send(createCommand);
+	console.log(4);
+	return {
+		statusCode: 200,
+		body: JSON.stringify({
+			message: "rider crerated  successfully",
+		}),
+	};
+})
+	.use(bodyValidator(phoneNumberSchema))
+	.use(errorHandler());
+
+const utcDate = (date) => {
+	const year = date.getUTCFullYear();
+	const month = String(date.getUTCMonth() + 1).padStart(2, "0"); // Months are zero-based
+	const day = String(date.getUTCDate()).padStart(2, "0");
+	const hours = String(date.getUTCHours()).padStart(2, "0");
+	const minutes = String(date.getUTCMinutes()).padStart(2, "0");
+	const seconds = String(date.getUTCSeconds()).padStart(2, "0");
+
+	return `${year}-${month}-${day} ${hours}:${minutes}:${seconds} UTC`;
+};
+
+const validateOtpSchema = z.object({
+	number: phoneNumberSchema.shape.number,
+	otp: z.string().regex(/^\d{6}$/, {
+		message: "Otp. Must be exactly 6 digits.",
+	}),
+	userType: z.enum(["rider", "packer"]),
+});
+
+export const validateOtpHandler = middy(async (event) => {
+	const { otp, number, userType } = JSON.parse(event.body);
+	return validateOtp(otp, number, userType);
+})
+	.use(bodyValidator(validateOtpSchema))
+	.use(errorHandler());
+
+// export const authorizerHandler = async (event) => {
+// 	return authorizer(event);
+// };
+
+// const refreshTokenSchema = z.object({
+// 	refreshToken: z.string(),
+// });
+
+// export const refreshAccessTokenHandler = middy(async (event) => {
+// 	const { refreshToken } = JSON.parse(event.body);
+// 	return refreshAccessToken(refreshToken);
+// })
+// 	.use(bodyValidator(refreshTokenSchema))
+// 	.use(errorHandler());
+
+export const numbersign = middy(async (event) => {}).use(errorHandler());
