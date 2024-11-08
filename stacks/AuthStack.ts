@@ -3,9 +3,13 @@ import {
 	StringAttribute,
 	UserPoolClientIdentityProvider
 } from "aws-cdk-lib/aws-cognito";
-import { Cognito, StackContext, Function } from "sst/constructs";
+import { Cognito, StackContext, Function, Config } from "sst/constructs";
 
 export function AuthStack({ stack }: StackContext) {
+
+	const SMS_AUTH = new Config.Secret(stack, "SMS_AUTH");
+	const SMS_AUTH_TOKEN = new Config.Secret(stack, "SMS_AUTH_TOKEN");
+
 	const defineAuthChallenge = new Function(stack, "DefineAuthChallenge", {
 		handler: "packages/functions/api/auth/defineAuthChallenge.handler",
 		timeout: 10,
@@ -14,9 +18,7 @@ export function AuthStack({ stack }: StackContext) {
 	const createAuthChallenge = new Function(stack, "CreateAuthChallenge", {
 		handler: "packages/functions/api/auth/createAuthChallenge.handler",
 		timeout: 10,
-		environment: {
-			OTP_SERVICE_API_KEY: process.env.OTP_SERVICE_API_KEY || "",
-		},
+		bind: [SMS_AUTH, SMS_AUTH_TOKEN],
 	});
 
 	const verifyAuthChallenge = new Function(stack, "VerifyAuthChallenge", {
@@ -27,29 +29,6 @@ export function AuthStack({ stack }: StackContext) {
 	const preSignUp = new Function(stack, "PreSignUp", {
 		handler: "packages/functions/api/auth/preSignUp.handler",
 		timeout: 10,
-	});
-
-	const cognito = new Cognito(stack, "Auth", {
-		login: ["email"],
-		cdk: {
-			userPool: {
-				customAttributes: {
-					userId: new StringAttribute({
-						mutable: false,
-					}),
-					role: new StringAttribute({
-						mutable: false,
-					}),
-					createdAt: new DateTimeAttribute(),
-				},
-			},
-			userPoolClient: {
-				authFlows: {
-					userPassword: true,
-					adminUserPassword: true
-				},
-			},
-		},
 	});
 
 	const cognito1 = new Cognito(stack, "Auth1", {
@@ -101,5 +80,5 @@ export function AuthStack({ stack }: StackContext) {
 		}
 	});
 
-	return { cognito, cognito1 };
+	return cognito1;
 }

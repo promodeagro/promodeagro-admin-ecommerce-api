@@ -1,31 +1,49 @@
 import { CreateAuthChallengeTriggerEvent } from "aws-lambda";
-
-// Import your preferred OTP service here
 import { generateOtp, sendOtp } from "./sendOtp";
 
 export const handler = async (event: CreateAuthChallengeTriggerEvent) => {
   const { request, response } = event;
-  console.log(JSON.stringify(request, null, 2));
+  let otp;
+  let date
   if (request.challengeName === "CUSTOM_CHALLENGE") {
-    // Generate a random 6-digit OTP
-    const otp = generateOtp()
 
-    // Store the OTP securely in the private challenge parameters
-    response.privateChallengeParameters = {
-      answer: otp.toString()
-    };
+    if (!request.session || request.session.length === 0) {
 
-    // Send OTP via your preferred service
-    try {
-      await sendOtp(otp, "9885876186")
-      response.publicChallengeParameters = {
-        message: "Please check your phone for the verification code",
+      otp = generateOtp()
+      date = Date.now()
+
+      response.privateChallengeParameters = {
+        answer: otp.toString(),
+        otpCreationTime: date
       };
-    } catch (error) {
-      console.error("Error sending OTP:", error);
-      throw new Error("Failed to send OTP");
+      response.challengeMetadata = JSON.stringify({
+        expire: date,
+        otp: otp
+      })
+      try {
+        await sendOtp(otp, request.userAttributes.phone_number.substring(3))
+        response.publicChallengeParameters = {
+          message: "Please check your phone for the verification code",
+        };
+      } catch (error) {
+        console.error("Error sending OTP:", error);
+        throw new Error("Failed to send OTP");
+      }
+    } else {
+      const prev = request.session.slice(-1)[0]
+      let data = JSON.parse(prev.challengeMetadata as any)
+      event.response = {
+        ...response,
+        privateChallengeParameters: {
+          answer: data.otp,
+          otpCreationTime: data.expiry
+        },
+        challengeMetadata: JSON.stringify({
+          expire: date,
+          otp: otp
+        })
+      }
     }
   }
-
   return event;
 };

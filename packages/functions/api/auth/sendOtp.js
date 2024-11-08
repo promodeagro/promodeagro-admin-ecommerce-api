@@ -3,9 +3,9 @@ import https from "node:https";
 import { Config } from "sst/node/config";
 
 export const sendOtp = async (otp, number) => {
-	const url = `https://restapi.smscountry.com/v0.1/Accounts/elXywroIYOf0MrQHA3as/SMSes/`;
+	const url = `https://restapi.smscountry.com/v0.1/Accounts/${Config.SMS_AUTH}/SMSes/`;
 	const header = Buffer.from(
-		`elXywroIYOf0MrQHA3as:SrptLYo7GdknJeQ1bFjJl4JHSGnhactnaDESDc4H`,
+		`${Config.SMS_AUTH}:${Config.SMS_AUTH_TOKEN}`,
 		"utf-8"
 	).toString("base64");
 

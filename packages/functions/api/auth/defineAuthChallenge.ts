@@ -1,61 +1,47 @@
 import { DefineAuthChallengeTriggerEvent } from "aws-lambda";
 
 export const handler = async (event: DefineAuthChallengeTriggerEvent) => {
-	const { request } = event;
+  const { request, response } = event;
+  // If user doesn't exist, fail authentication
+  if (request.userNotFound) {
+    response.issueTokens = false;
+    response.failAuthentication = true;
+    return event;
+  }
 
-	// If user doesn't exist, return error
-	if (request.userNotFound) {
-		return {
-			isValid: false,
-			statusCode: 400,
-			error: "User not found",
-		};
-	}
+  // If this is password auth (SRP), skip custom challenge
+  if (request.session?.length > 0 &&
+    request.session[0].challengeName === "SRP_A") {
+    response.issueTokens = true;
+    response.failAuthentication = false;
+    return event;
+  }
 
-	// If this is password auth, skip custom challenge
-	if (request.session?.length > 0 &&
-		request.session[0].challengeName === "SRP_A") {
-		return {
-			issueTokens: true,
-			failAuthentication: false,
-		};
-	}
+  // Initial OTP Challenge
+  if (!request.session || request.session.length === 0) {
+    response.issueTokens = false;
+    response.failAuthentication = false;
+    response.challengeName = "CUSTOM_CHALLENGE";  // Set OTP challenge
+    return event;
+  }
 
-	// For custom OTP flow
-	if (!request.session || request.session.length === 0) {
-		// Start custom auth challenge
-		return {
-			challengeName: "CUSTOM_CHALLENGE",
-			issueTokens: false,
-			failAuthentication: false,
-		};
-	}
+  // If OTP is correct, issue tokens and authenticate the user
+  if (request.session.length > 0 && request.session.slice(-1)[0].challengeName === "CUSTOM_CHALLENGE" && request.session.slice(-1)[0].challengeResult === true) {
+    response.issueTokens = true;
+    response.failAuthentication = false;
+    return event;
+  }
 
-	// Handle subsequent challenges
-	if (request.session.length === 1 &&
-		request.session[0].challengeName === "CUSTOM_CHALLENGE" &&
-		request.session[0].challengeResult === true) {
-		// User successfully completed the challenge
-		return {
-			issueTokens: true,
-			failAuthentication: false,
-		};
-	}
+  // If OTP is wrong, prompt user to try again without changing the session
+  if (request.session.length > 0 && request.session.slice(-1)[0].challengeName === "CUSTOM_CHALLENGE" && request.session.slice(-1)[0].challengeResult === false) {
+    response.issueTokens = false;
+    response.failAuthentication = false;
+    response.challengeName = "CUSTOM_CHALLENGE"; // Retry the OTP challenge
+    return event;
+  }
 
-	// Wrong OTP, try again
-	if (request.session.length === 1 &&
-		request.session[0].challengeName === "CUSTOM_CHALLENGE" &&
-		request.session[0].challengeResult === false) {
-		return {
-			issueTokens: false,
-			failAuthentication: false,
-			challengeName: "CUSTOM_CHALLENGE",
-		};
-	}
-
-	// Default to failing authentication
-	return {
-		issueTokens: false,
-		failAuthentication: true,
-	};
+  // Default: Fail authentication
+  response.issueTokens = false;
+  response.failAuthentication = true;
+  return event
 };

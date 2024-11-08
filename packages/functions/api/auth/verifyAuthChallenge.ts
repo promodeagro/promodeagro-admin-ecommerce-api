@@ -1,14 +1,14 @@
 import { VerifyAuthChallengeResponseTriggerEvent } from "aws-lambda";
 
 export const handler = async (event: VerifyAuthChallengeResponseTriggerEvent) => {
-  const { request } = event;
-  console.log(request);
-  if (request.privateChallengeParameters?.answer === 
-      request.challengeAnswer) {
-    event.response.answerCorrect = true;
-  } else {
-    event.response.answerCorrect = false;
-  }
-  
+  const { privateChallengeParameters, challengeAnswer } = event.request;
+
+  const isAnswerCorrect = privateChallengeParameters.answer === challengeAnswer;
+
+  const otpCreationTime = privateChallengeParameters.otpCreationTime
+  const otpAge = Date.now() - new Date(otpCreationTime).getTime();
+
+  const isOtpExpired = otpAge > 2 * 60 * 1000;
+  event.response.answerCorrect = isAnswerCorrect && !isOtpExpired;
   return event;
 };

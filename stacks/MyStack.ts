@@ -8,6 +8,7 @@ export function API({ app, stack }: StackContext) {
 	const API_URL = new Config.Secret(stack, "API_URL")
 	const FACEBOOK_ACCESS_TOKEN = new Config.Secret(stack, "FACEBOOK_ACCESS_TOKEN")
 	const CATALOG_ID = new Config.Secret(stack, "CATALOG_ID")
+
 	const isProd = app.stage == "prod"
 
 	const mediaBucket = new Bucket(stack, "mediaBucket", {
@@ -41,6 +42,20 @@ export function API({ app, stack }: StackContext) {
 		globalIndexes: {
 			[`MobileNumber-index`]: { partitionKey: "MobileNumber" },
 			[`Name-index`]: { partitionKey: "name" },
+
+		},
+	});
+
+	const promodeagroUsers = new Table(stack, "promodeagroUsers", {
+		fields: {
+			id: "string",
+			email: "string",
+			number: "string"
+		},
+		primaryIndex: { partitionKey: "id" },
+		globalIndexes: {
+			[`emailIndex`]: { partitionKey: "email" },
+			[`numberIndex`]: { partitionKey: "number" },
 
 		},
 	});
@@ -125,7 +140,7 @@ export function API({ app, stack }: StackContext) {
 		primaryIndex: { partitionKey: "orderId", sortKey: "productId" },
 	});
 
-	const { cognito, cognito1 } = use(AuthStack);
+	const cognito1 = use(AuthStack);
 
 	const inventoryTable = new Table(stack, "inventoryTable", {
 		fields: {
@@ -219,34 +234,35 @@ export function API({ app, stack }: StackContext) {
 	});
 
 	const api = new Api(stack, "api", {
-		customDomain: isProd ?
-			{
-				domainName: "api.admin.promodeagro.com",
-				hostedZone: "promodeagro.com"
-			} : undefined,
-		// 	UserPoolAuthorizer: {
-		// 		type: "user_pool",
-		// 		userPool: {
-		// 			id: cognito.userPoolId,
-		// 			clientIds: [cognito.userPoolClientId],
-		// 		},
-		// 	},
-		// },
+		customDomain: isProd ? {
+			domainName: "api.admin.promodeagro.com",
+			hostedZone: "promodeagro.com"
+		} : undefined,
+		authorizers: {
+			UserPoolAuthorizer: {
+				type: "user_pool",
+				userPool: {
+					id: cognito1.userPoolId,
+					clientIds: [cognito1.userPoolClientId],
+				},
+			},
+		},
 		defaults: {
+			authorizer: "UserPoolAuthorizer",
 			function: {
 				bind: [inventoryTable,
 					inventoryModificationTable,
 					productsTable,
 					inventoryStatsTable,
 					OrdersTable, runsheetTable, riderTable,
-					usersTable, bus],
+					usersTable, bus, promodeagroUsers],
 			},
 		},
 		routes: {
 			"POST /auth/signup": {
 				authorizer: "none",
 				function: {
-					handler: "packages/functions/api/auth/auth.signup",
+					handler: "packages/functions/api/auth/auth.signupHandler",
 					environment: {
 						USER_POOL_ID: cognito1.userPoolId,
 						COGNITO_CLIENT: cognito1.userPoolClientId,
@@ -296,7 +312,7 @@ export function API({ app, stack }: StackContext) {
 			"POST /auth/signin": {
 				authorizer: "none",
 				function: {
-					handler: "packages/functions/api/auth/auth.signin",
+					handler: "packages/functions/api/auth/auth.signinHandler",
 					environment: {
 						USER_POOL_ID: cognito1.userPoolId,
 						COGNITO_CLIENT: cognito1.userPoolClientId,
@@ -316,7 +332,7 @@ export function API({ app, stack }: StackContext) {
 			"POST /auth/forgot-password": {
 				authorizer: "none",
 				function: {
-					handler: "packages/functions/api/auth/auth.forgotPassword",
+					handler: "packages/functions/api/auth/auth.forgotPasswordHandler",
 					environment: {
 						USER_POOL_ID: cognito1.userPoolId,
 						COGNITO_CLIENT: cognito1.userPoolClientId,
@@ -326,7 +342,7 @@ export function API({ app, stack }: StackContext) {
 			"POST /auth/reset-password": {
 				authorizer: "none",
 				function: {
-					handler: "packages/functions/api/auth/auth.resetPassword",
+					handler: "packages/functions/api/auth/auth.resetPasswordHandler ",
 					environment: {
 						USER_POOL_ID: cognito1.userPoolId,
 						COGNITO_CLIENT: cognito1.userPoolClientId,
