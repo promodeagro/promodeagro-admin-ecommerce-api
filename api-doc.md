@@ -651,3 +651,144 @@ This endpoint is used to verify or reject a specific document for a rider.
   Copy code
 
   `{ "message": "rider not found" }`
+
+
+## POST `/pincode`
+
+### Description
+
+Creates a new pincode with delivery details, shifts, and delivery type.
+
+### Request Body
+
+```
+json
+```
+
+Copy code
+
+`{ "pincode": "string", "deliveryType": "same day | next day", "shifts": [ { "name": "string", "slots": [ { "start": "HH:MM:SS", "end": "HH:MM:SS" } ] } ] }`
+
+### Responses
+
+- **200 OK**: Pincode created successfully.
+
+- **400 Bad Request**: Pincode already exists.
+
+### Example Response
+
+```
+json
+```
+
+Copy code
+
+`{ "pincode": "12345", "deliveryType": "next day", "shifts": [ { "name": "Morning", "slots": [ { "start": "08:00:00", "end": "12:00:00" } ] } ] }`
+
+***
+
+## PUT `/pincode`
+
+### Description
+
+Updates an existing pincode's details.
+
+### Request Body
+
+Use the same schema as for creating a pincode.
+
+```
+json
+```
+
+Copy code
+
+`{ "pincode": "string", "deliveryType": "same day | next day", "shifts": [ { "name": "string", "slots": [ { "start": "HH:MM:SS", "end": "HH:MM:SS" } ] } ] }`
+
+### Responses
+
+- **200 OK**: Pincode updated successfully.
+
+- **404 Not Found**: Pincode does not exist.
+
+***
+
+## PATCH `/pincode/status`
+
+### Description
+
+Updates the active status of multiple pincodes.
+
+### Request Body
+
+```
+json
+```
+
+Copy code
+
+`{ "status": "active | inactive", "pincodes": ["string"] }`
+
+- `status`: `"active"` or `"inactive"`
+
+- `pincodes`: Array of pincode strings.
+
+### Responses
+
+- **200 OK**: Status updated successfully.
+
+- **400 Bad Request**: Request validation failed (e.g., empty pincodes array).
+
+***
+
+## PATCH `/pincode/delivery-type`
+
+### Description
+
+Updates the delivery type for multiple pincodes.
+
+### Request Body
+
+```
+json
+```
+
+Copy code
+
+`{ "type": "same day | next day", "pincodes": ["string"] }`
+
+- `type`: `"same day"` or `"next day"`
+
+- `pincodes`: Array of pincode strings.
+
+### Responses
+
+- **200 OK**: Delivery type updated successfully.
+
+- **400 Bad Request**: Request validation failed (e.g., empty pincodes array).
+
+***
+
+## GET `/pincode`
+
+### Description
+
+Retrieves a list of all pincodes, or filters based on a search query.
+
+### Query Parameters
+
+- `search` (optional): Search query string to filter pincodes.
+
+### Responses
+
+- **200 OK**: Returns an array of pincodes matching the query.
+
+### Example Response
+
+```
+json
+```
+
+Copy code
+
+`[ { "pincode": "12345", "deliveryType": "next day", "shifts": [ { "name": "Morning", "slots": [ { "start": "08:00:00", "end": "12:00:00" } ] } ], "active": true }, { "pincode": "67890", "deliveryType": "same day", "shifts": [ { "name": "Evening", "slots": [ { "start": "15:00:00", "end": "20:00:00" } ] } ], "active": false } ]`

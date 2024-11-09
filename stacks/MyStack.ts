@@ -215,6 +215,17 @@ export function API({ app, stack }: StackContext) {
 			}
 		}
 	});
+
+	const pincodeTable = new Table(stack, "pincodeTable", {
+		fields: {
+			pincode: "string",
+			deliveryType: "string",
+			shifts: "string",
+			active: "binary"
+		},
+		primaryIndex: { partitionKey: "pincode" },
+	});
+
 	const riderTable = new Table(
 		stack,
 		"riderTable", {
@@ -255,7 +266,7 @@ export function API({ app, stack }: StackContext) {
 					productsTable,
 					inventoryStatsTable,
 					OrdersTable, runsheetTable, riderTable,
-					usersTable, bus, promodeagroUsers],
+					usersTable, bus, promodeagroUsers, pincodeTable],
 			},
 		},
 		routes: {
@@ -342,7 +353,7 @@ export function API({ app, stack }: StackContext) {
 			"POST /auth/reset-password": {
 				authorizer: "none",
 				function: {
-					handler: "packages/functions/api/auth/auth.resetPasswordHandler ",
+					handler: "packages/functions/api/auth/auth.resetPasswordHandler",
 					environment: {
 						USER_POOL_ID: cognito1.userPoolId,
 						COGNITO_CLIENT: cognito1.userPoolClientId,
@@ -399,6 +410,11 @@ export function API({ app, stack }: StackContext) {
 			"GET /rider/{id}": "packages/functions/api/rider/rider.getRiderHandler",
 			"PATCH /rider/{id}": "packages/functions/api/rider/rider.patchRiderHandler",
 			"PATCH /rider/{id}/document": "packages/functions/api/rider/rider.patchDocuemntHandler",
+			"POST /pincode": "packages/functions/api/pincode/pincode.createPincodeHandler",
+			"PUT /pincode": "packages/functions/api/pincode/pincode.updatePincodeHandler",
+			"PATCH /pincode/status": "packages/functions/api/pincode/pincode.changeActiveStatusHandler",
+			"PATCH /pincode/delivery-type": "packages/functions/api/pincode/pincode.changeDeliveryTypeHandler",
+			"GET /pincode": "packages/functions/api/pincode/pincode.listhandler",
 		},
 	});
 
