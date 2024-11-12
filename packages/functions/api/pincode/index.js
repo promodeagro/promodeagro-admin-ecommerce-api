@@ -51,18 +51,18 @@ export const updatePincode = async (req) => {
 
 export const changeActiveStatus = async ({ status, pincodes }) => {
 	const batchUpdateParams = {
-		// Remove the extra array wrapping around `pincodes.map(...)`
 		TransactItems: pincodes.map((pin) => ({
 			Update: {
 				TableName: pincodeTable,
-				Key: { pincode: pin }, // `pin` is directly used here since it's a string
+				Key: { pincode: pin },
 				UpdateExpression: "SET #active = :newStatus",
 				ExpressionAttributeNames: { "#active": "active" },
 				ExpressionAttributeValues: { ":newStatus": status },
 			},
 		})),
 	};
-	return await docClient.send(new TransactWriteCommand(batchUpdateParams));
+	await docClient.send(new TransactWriteCommand(batchUpdateParams));
+	return await list();
 };
 
 export const changeDeliveryType = async ({ type, pincodes }) => {
@@ -79,7 +79,8 @@ export const changeDeliveryType = async ({ type, pincodes }) => {
 			},
 		})),
 	};
-	return await docClient.send(new TransactWriteCommand(batchUpdateParams));
+	await docClient.send(new TransactWriteCommand(batchUpdateParams));
+	return await list();
 };
 
 export const list = async () => {
@@ -100,5 +101,9 @@ export const searchPincodes = async (query) => {
 
 	const command = new ScanCommand(params);
 	const data = await docClient.send(command);
-	return data.Items;
+	return {
+		count: data.Count,
+		items: data.Items,
+		nextKey: data.nextKey,
+	};
 };

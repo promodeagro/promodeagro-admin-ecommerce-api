@@ -15,6 +15,7 @@ import {
 const pincodeSchema = z.object({
 	pincode: z.string(),
 	deliveryType: z.enum(deliveryTypes),
+	active: z.boolean().default(true),
 	shifts: z.array(
 		z.object({
 			name: z.string(),
@@ -29,7 +30,7 @@ const pincodeSchema = z.object({
 });
 
 export const createPincodeHandler = middy(async (event) => {
-	const req = JSON.parse(event.body);
+	const req = pincodeSchema.parse(JSON.parse(event.body));
 	return await createPincode(req);
 })
 	.use(bodyValidator(pincodeSchema))
@@ -53,7 +54,7 @@ const changeActiveStatusSchema = z
 
 export const changeActiveStatusHandler = middy(async (event) => {
 	const req = JSON.parse(event.body);
-	const res = await changeActiveStatus(req);
+	return await changeActiveStatus(req);
 })
 	.use(bodyValidator(changeActiveStatusSchema))
 	.use(errorHandler());

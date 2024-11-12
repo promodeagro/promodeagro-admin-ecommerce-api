@@ -249,7 +249,7 @@ export function API({ app, stack }: StackContext) {
 			domainName: "api.admin.promodeagro.com",
 			hostedZone: "promodeagro.com"
 		} : undefined,
-		authorizers: {
+		authorizers: isProd ? {
 			UserPoolAuthorizer: {
 				type: "user_pool",
 				userPool: {
@@ -257,9 +257,9 @@ export function API({ app, stack }: StackContext) {
 					clientIds: [cognito1.userPoolClientId],
 				},
 			},
-		},
+		} : undefined,
 		defaults: {
-			authorizer: "UserPoolAuthorizer",
+			authorizer: isProd ? "UserPoolAuthorizer" : "none",
 			function: {
 				bind: [inventoryTable,
 					inventoryModificationTable,
