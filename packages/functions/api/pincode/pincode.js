@@ -11,6 +11,7 @@ import {
 	list,
 	searchPincodes,
 } from ".";
+import { authorizer } from "../auth/middleware";
 
 const pincodeSchema = z.object({
 	pincode: z.string(),
@@ -84,4 +85,6 @@ export const listhandler = middy(async (event) => {
 	}
 	console.log(status);
 	return await list(status, type);
-}).use(errorHandler());
+})
+	.use(authorizer())
+	.use(errorHandler());

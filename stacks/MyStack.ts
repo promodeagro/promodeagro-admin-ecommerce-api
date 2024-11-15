@@ -267,6 +267,10 @@ export function API({ app, stack }: StackContext) {
 					inventoryStatsTable,
 					OrdersTable, runsheetTable, riderTable,
 					usersTable, bus, promodeagroUsers, pincodeTable],
+				environment: {
+					USER_POOL_ID: cognito1.userPoolId,
+					COGNITO_CLIENT: cognito1.userPoolClientId,
+				}
 			},
 		},
 		routes: {

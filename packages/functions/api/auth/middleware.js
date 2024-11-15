@@ -1,47 +1,38 @@
 import ky from "ky";
 import jwt from "jsonwebtoken";
+import jwkToPem from "jwk-to-pem";
 
-export const authorizer = async (event) => {
-	const url = `https://cognito-idp.ap-south-1.amazonaws.com/${process.env.USER_POOL_ID}/.well-known/jwks.json`;
-	const response = await ky.get(url);
-	const keys = response.data.keys;
-	const key = keys.find((k) => k.kid === kid);
-
-	if (!key) {
-		throw new Error("Public key not found");
-	}
-
-	const token = event.headers["authorization"]?.split(" ")[1];
-
-	if (!token) {
-		return res.status(403).json({ message: "No token provided" });
-	}
-
-	try {
+export const authorizer = () => ({
+	before: async ({ event }) => {
+		const token = event.headers["authorization"]?.split(" ")[1];
+		if (!token) {
+			return {
+				statusCode: 403,
+				body: "Unauthorized",
+			};
+		}
 		const decodedHeader = jwt.decode(token, { complete: true });
 		const kid = decodedHeader?.header.kid;
 
 		if (!kid) {
-			return res.status(400).json({ message: "Invalid token" });
+			return {
+				statusCode: 403,
+				body: "Unauthorized",
+			};
 		}
 
-		const publicKey = await getCognitoPublicKey(kid);
+		const keys = await getCognitoKeys();
+		const key = keys.find((k) => k.kid === kid);
+		const pem = jwkToPem(key);
 
-		jwt.verify(
-			token,
-			publicKey,
-			{ algorithms: ["RS256"] },
-			(err, decoded) => {
-				if (err) {
-					return res.status(403).json({ message: "Unauthorized" });
-				}
+		const decoded = jwt.verify(token, pem);
+	},
+});
 
-				event.user = decoded;
-				next();
-			}
-		);
-	} catch (error) {
-		console.error("Error verifying token:", error);
-		return res.status(403).json({ message: "Unauthorized" });
-	}
+const getCognitoKeys = async () => {
+	const response = await ky.get(
+		`https://cognito-idp.ap-south-1.amazonaws.com/${process.env.USER_POOL_ID}/.well-known/jwks.json`
+	);
+	const { keys } = await response.json();
+	return keys;
 };

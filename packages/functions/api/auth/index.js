@@ -127,6 +127,7 @@ export const resetPassword = async ({
 };
 
 const initiateEmailAuth = async ({ email, password }) => {
+	console.log("POOL ID :", process.env.USER_POOL_ID);
 	const authParams = {
 		AuthFlow: "USER_PASSWORD_AUTH",
 		UserPoolId: process.env.USER_POOL_ID,
