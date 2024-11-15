@@ -3,6 +3,7 @@ import {
 	DynamoDBDocumentClient,
 	GetCommand,
 	ScanCommand,
+	QueryCommand,
 	TransactWriteCommand,
 } from "@aws-sdk/lib-dynamodb";
 import { Table } from "sst/node/table";
@@ -83,7 +84,29 @@ export const changeDeliveryType = async ({ type, pincodes }) => {
 	return await list();
 };
 
-export const list = async () => {
+export const list = async (status, type) => {
+	if (status || type) {
+		status = status === "false" ? false : true;
+		type = type === "next day" ? "next day" : "same day";
+		const params = {
+			TableName: pincodeTable,
+			FilterExpression: "#s = :active AND #t = :deliveryType",
+			ExpressionAttributeNames: {
+				"#s": "active",
+				"#t": "deliveryType",
+			},
+			ExpressionAttributeValues: {
+				":active": Boolean(status),
+				":deliveryType": type,
+			},
+		};
+		const data = await docClient.send(new ScanCommand(params));
+		return {
+			count: data.Count,
+			items: data.Items,
+			nextKey: data.nextKey,
+		};
+	}
 	return await findAll(pincodeTable);
 };
 

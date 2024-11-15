@@ -45,7 +45,7 @@ export const updatePincodeHandler = middy(async (event) => {
 
 const changeActiveStatusSchema = z
 	.object({
-		status: z.enum(["active", "inactive"]),
+		status: z.boolean(),
 		pincodes: z.array(z.string()),
 	})
 	.refine((ob) => ob.pincodes.length > 0, {
@@ -77,8 +77,11 @@ export const changeDeliveryTypeHandler = middy(async (event) => {
 
 export const listhandler = middy(async (event) => {
 	let search = event.queryStringParameters?.search || undefined;
+	let status = event.queryStringParameters?.status || undefined;
+	let type = event.queryStringParameters?.type || undefined;
 	if (search) {
 		return await searchPincodes(search);
 	}
-	return await list();
+	console.log(status);
+	return await list(status, type);
 }).use(errorHandler());
