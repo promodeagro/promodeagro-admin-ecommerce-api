@@ -1,5 +1,5 @@
 import * as iam from "aws-cdk-lib/aws-iam";
-import { Bucket, Table, StackContext, Api, use, EventBus, Config } from "sst/constructs";
+import { Function, Bucket, Table, StackContext, Api, use, EventBus, Config } from "sst/constructs";
 import { AuthStack } from "./AuthStack";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 
@@ -8,6 +8,7 @@ export function API({ app, stack }: StackContext) {
 	const API_URL = new Config.Secret(stack, "API_URL")
 	const FACEBOOK_ACCESS_TOKEN = new Config.Secret(stack, "FACEBOOK_ACCESS_TOKEN")
 	const CATALOG_ID = new Config.Secret(stack, "CATALOG_ID")
+	const SENDGRID_API_KEY = new Config.Secret(stack, "SENDGRID_API_KEY")
 
 	const isProd = app.stage == "prod"
 
@@ -250,16 +251,18 @@ export function API({ app, stack }: StackContext) {
 			hostedZone: "promodeagro.com"
 		} : undefined,
 		authorizers: isProd ? {
-			UserPoolAuthorizer: {
-				type: "user_pool",
-				userPool: {
-					id: cognito1.userPoolId,
-					clientIds: [cognito1.userPoolClientId],
-				},
-			},
+			myAuthorizer: {
+				type: "lambda",
+				function: new Function(stack, "Auuthorizer", {
+					handler: "packages/functions/api/auth/middleware.authorizer",
+					environment: {
+						USER_POOL_ID: cognito1.userPoolId,
+					}
+				})
+			}
 		} : undefined,
 		defaults: {
-			authorizer: isProd ? "UserPoolAuthorizer" : "none",
+			authorizer: isProd ? "myAuthorizer" : "none",
 			function: {
 				bind: [inventoryTable,
 					inventoryModificationTable,
@@ -278,40 +281,6 @@ export function API({ app, stack }: StackContext) {
 				authorizer: "none",
 				function: {
 					handler: "packages/functions/api/auth/auth.signupHandler",
-					environment: {
-						USER_POOL_ID: cognito1.userPoolId,
-						COGNITO_CLIENT: cognito1.userPoolClientId,
-					},
-					permissions: [
-						"cognito-idp:AdminCreateUser",
-						"cognito-idp:AdminConfirmSignUp",
-						"cognito-idp:AdminUpdateUserAttributes",
-						"cognito-idp:AdminSetUserPassword",
-					],
-				},
-			},
-			"POST /auth/numbersignup": {
-				authorizer: "none",
-				function: {
-					handler: "packages/functions/api/auth/auth.numbersignin",
-					environment: {
-						USER_POOL_ID: cognito1.userPoolId,
-						COGNITO_CLIENT: cognito1.userPoolClientId,
-					},
-					permissions: [
-						"cognito-idp:AdminCreateUser",
-						"cognito-idp:AdminConfirmSignUp",
-						"cognito-idp:AdminUpdateUserAttributes",
-						"cognito-idp:AdminSetUserPassword",
-						"cognito-idp:AdminInitiateAuth"
-					],
-				},
-			},
-
-			"POST /auth/numbersign": {
-				authorizer: "none",
-				function: {
-					handler: "packages/functions/api/auth/auth.numbersign",
 					environment: {
 						USER_POOL_ID: cognito1.userPoolId,
 						COGNITO_CLIENT: cognito1.userPoolClientId,
@@ -419,6 +388,22 @@ export function API({ app, stack }: StackContext) {
 			"PATCH /pincode/status": "packages/functions/api/pincode/pincode.changeActiveStatusHandler",
 			"PATCH /pincode/delivery-type": "packages/functions/api/pincode/pincode.changeDeliveryTypeHandler",
 			"GET /pincode": "packages/functions/api/pincode/pincode.listhandler",
+			"POST /admin/create-user": {
+				function: {
+					handler: "packages/functions/api/rbac/rbac.createNewUserHandler",
+					environment: {
+						USER_POOL_ID: cognito1.userPoolId,
+						COGNITO_CLIENT: cognito1.userPoolClientId,
+					},
+					permissions: [
+						"cognito-idp:AdminCreateUser",
+						"cognito-idp:AdminConfirmSignUp",
+						"cognito-idp:AdminUpdateUserAttributes",
+						"cognito-idp:AdminSetUserPassword",
+					],
+					bind: [SENDGRID_API_KEY]
+				}
+			},
 		},
 	});
 

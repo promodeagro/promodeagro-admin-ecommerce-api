@@ -1,46 +1,41 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import {
-	DynamoDBDocumentClient,
-	PutCommand,
-	ScanCommand,
-	GetCommand,
-	UpdateCommand,
-	QueryCommand,
-	DeleteCommand,
-	TransactWriteCommand,
-	BatchGetCommand,
-} from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocumentClient, ScanCommand } from "@aws-sdk/lib-dynamodb";
 import { Table } from "sst/node/table";
-import { findAll, findById, save, update } from "../../common/data";
-import crypto from "crypto";
+import { findById, update } from "../../common/data";
 
 const client = new DynamoDBClient({ region: "ap-south-1" });
 const docClient = DynamoDBDocumentClient.from(client);
 
-const riderTable = Table.riderTable.tableName;
+const usersTable = Table.promodeagroUsers.tableName;
 
 export const listRiders = async (status, nextKey) => {
 	const params = {
-		TableName: riderTable,
+		TableName: usersTable,
 		Limit: 50,
 		ExclusiveStartKey: nextKey
 			? {
 					id: { S: nextKey },
 			  }
 			: undefined,
-		FilterExpression: "#rs = :reviewStatusVal",
-		ExpressionAttributeNames: { "#rs": "reviewStatus" },
+		FilterExpression: "#rs = :reviewStatusVal AND #role = :riderRole",
+		ExpressionAttributeNames: { "#rs": "reviewStatus", "#role": "role" },
 	};
 	if (status != undefined) {
-		params.ExpressionAttributeValues = { ":reviewStatusVal": status };
+		params.ExpressionAttributeValues = {
+			":reviewStatusVal": status,
+			":riderRole": "rider",
+		};
 	} else {
-		params.FilterExpression = "#rs IN (:pending, :active, :rejected)";
+		params.FilterExpression =
+			"#rs IN (:pending, :active, :rejected) AND #role = :riderRole";
 		params.ExpressionAttributeValues = {
 			":pending": "pending",
 			":active": "active",
 			":rejected": "rejected",
+			":riderRole": "rider",
 		};
 	}
+	console.log(params);
 	const command = new ScanCommand(params);
 	const data = await docClient.send(command);
 	if (data.LastEvaluatedKey) {
@@ -65,25 +60,23 @@ export const listRiders = async (status, nextKey) => {
 };
 
 export const getRider = async (id) => {
-	const rider = await findById(riderTable, id);
-	delete rider.otp;
-	delete rider.otpExpire;
+	const rider = await findById(usersTable, id);
 	return rider;
 };
 
 export const activateRider = async (id, req) => {
 	return await update(
-		riderTable,
+		usersTable,
 		{ id: id },
 		{
-			reviewStatus: req.status,
+			reviewStatus: status,
 			rejectionReason: null,
 		}
 	);
 };
 
 export const rejectRider = async (id, req) => {
-	const rider = await findById(riderTable, id);
+	const rider = await findById(usersTable, id);
 	if (!rider) {
 		return {
 			statusCode: 404,
@@ -91,14 +84,14 @@ export const rejectRider = async (id, req) => {
 		};
 	}
 	return await update(
-		riderTable,
+		usersTable,
 		{ id: id },
-		{ reviewStatus: req.status, rejectionReason: req.reason }
+		{ reviewStatus: status, rejectionReason: reason }
 	);
 };
 
-export const verifyDocument = async (id, document, req) => {
-	const rider = await findById(riderTable, id);
+export const verifyDocument = async (id, { status, document, reason }) => {
+	const rider = await findById(usersTable, id);
 	if (!rider) {
 		return {
 			statusCode: 404,
@@ -106,16 +99,16 @@ export const verifyDocument = async (id, document, req) => {
 		};
 	}
 	if (document === "bankDetails") {
-		rider.bankDetails.status = req.status;
-		if (req.status === "verified") {
+		rider.bankDetails.status = status;
+		if (status === "verified") {
 			rider.profileStatus.bankDetailsCompleted = true;
 			rider.bankDetails.reason = null;
 		}
-		if (req.status === "rejected") {
-			rider.bankDetails.reason = req.reason;
+		if (status === "rejected") {
+			rider.bankDetails.reason = reason;
 		}
 		return await update(
-			riderTable,
+			usersTable,
 			{ id: id },
 			{
 				bankDetails: rider.bankDetails,
@@ -124,13 +117,18 @@ export const verifyDocument = async (id, document, req) => {
 		);
 	}
 	const documents = rider.documents;
+	console.log(documents);
+	console.log(1);
 	const a = documents.filter((item) => item.name === document);
-	if (req.status === "verified") {
-		a[0].verified = req.status;
+	console.log(a);
+	console.log(2);
+	if (status === "verified") {
+		console.log(3);
+		a[0].verified = status;
 	}
-	if (req.status === "rejected") {
-		a[0].verified = req.status;
-		a[0].rejectionReason = req.reason;
+	if (status === "rejected") {
+		a[0].verified = status;
+		a[0].rejectionReason = reason;
 	}
-	return await update(riderTable, { id: id }, { documents: documents });
+	return await update(usersTable, { id: id }, { documents: documents });
 };

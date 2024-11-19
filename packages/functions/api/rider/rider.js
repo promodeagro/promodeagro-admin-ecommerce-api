@@ -1,15 +1,14 @@
-import z from "zod";
 import middy from "@middy/core";
+import z from "zod";
+import {
+	activateRider,
+	getRider,
+	listRiders,
+	rejectRider,
+	verifyDocument,
+} from ".";
 import { bodyValidator } from "../util/bodyValidator";
 import { errorHandler } from "../util/errorHandler";
-import {
-	listRiders,
-	getRider,
-	activateRider,
-	verifyDocument,
-	rejectRider,
-} from ".";
-import { queryParamsValidator } from "../util/queryParamsValidator";
 
 export const listRidersHandler = middy(async (event) => {
 	let nextKey = event.queryStringParameters?.pageKey || undefined;
@@ -57,21 +56,19 @@ export const patchRiderHandler = middy(async (event) => {
 	.use(bodyValidator(patchRiderSchema))
 	.use(errorHandler());
 
-const documentQuerySchema = z.object({
-	name: z.enum([
-		"userPhoto",
-		"aadharFront",
-		"aadharBack",
-		"pan",
-		"dl",
-		"vehicleImage",
-		"rcBook",
-		"bankDetails",
-	]),
-});
-
 const patchDocSchema = z
 	.object({
+		document: z.enum([
+			"userPhoto",
+			"aadharFront",
+			"aadharback",
+			"pan",
+			"drivingFront",
+			"drivingBack",
+			"VehicleImage",
+			"rcFront",
+			"rcBack",
+		]),
 		status: z.enum(["verified", "rejected"]),
 		reason: z.string().optional(),
 	})
@@ -93,10 +90,8 @@ export const patchDocuemntHandler = middy(async (event) => {
 			body: JSON.stringify({ message: "id is required" }),
 		};
 	}
-	let document = event.queryStringParameters?.name || undefined;
 	const req = JSON.parse(event.body);
-	return await verifyDocument(id, document, req);
+	return await verifyDocument(id, req);
 })
 	.use(bodyValidator(patchDocSchema))
-	.use(queryParamsValidator(documentQuerySchema))
 	.use(errorHandler());

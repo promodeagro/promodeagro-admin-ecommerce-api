@@ -83,8 +83,5 @@ export const listhandler = middy(async (event) => {
 	if (search) {
 		return await searchPincodes(search);
 	}
-	console.log(status);
 	return await list(status, type);
-})
-	.use(authorizer())
-	.use(errorHandler());
+}).use(errorHandler());

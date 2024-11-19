@@ -3,16 +3,18 @@ import {
 	AdminInitiateAuthCommand,
 	AdminSetUserPasswordCommand,
 	CognitoIdentityProviderClient,
+	ConfirmForgotPasswordCommand,
 	ForgotPasswordCommand,
 	InitiateAuthCommand,
-	ConfirmForgotPasswordCommand,
 } from "@aws-sdk/client-cognito-identity-provider";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, QueryCommand } from "@aws-sdk/lib-dynamodb";
+import jwt from "jsonwebtoken";
+import jwkToPem from "jwk-to-pem";
 import { Table } from "sst/node/table";
-
+import { getCognitoKeys } from "./middleware";
 import crypto from "crypto";
-import { findById, save, update } from "../../common/data";
+import { save, update } from "../../common/data";
 // import { generateTokens } from ./jwt";
 const cognitoClient = new CognitoIdentityProviderClient({
 	region: "ap-south-1",
@@ -73,6 +75,27 @@ export const signin = async ({ email, password }) => {
 	const accessToken = authResponse.AuthenticationResult?.AccessToken;
 	const idToken = authResponse.AuthenticationResult?.IdToken;
 	const refreshToken = authResponse.AuthenticationResult?.RefreshToken;
+
+	const decodedHeader = jwt.decode(idToken, { complete: true });
+	const kid = decodedHeader?.header.kid;
+
+	if (!kid) {
+		return {
+			statusCode: 403,
+			body: "Unauthorized",
+		};
+	}
+	const keys = await getCognitoKeys();
+	const key = keys.find((k) => k.kid === kid);
+	const pem = jwkToPem(key);
+
+	const decoded = jwt.verify(idToken, pem);
+	if (!(decoded["custom:role"] === "admin")) {
+		return {
+			statusCode: 403,
+			body: "Unauthorized",
+		};
+	}
 	return {
 		statusCode: 200,
 		body: JSON.stringify({
@@ -127,7 +150,6 @@ export const resetPassword = async ({
 };
 
 const initiateEmailAuth = async ({ email, password }) => {
-	console.log("POOL ID :", process.env.USER_POOL_ID);
 	const authParams = {
 		AuthFlow: "USER_PASSWORD_AUTH",
 		UserPoolId: process.env.USER_POOL_ID,
@@ -137,7 +159,6 @@ const initiateEmailAuth = async ({ email, password }) => {
 			PASSWORD: password,
 		},
 	};
-	console.log(JSON.stringify(authParams, null, 2));
 	const authCommand = new InitiateAuthCommand(authParams);
 	return await cognitoClient.send(authCommand);
 };

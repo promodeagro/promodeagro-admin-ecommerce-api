@@ -1,3 +1,4 @@
+import { Duration } from "aws-cdk-lib";
 import {
 	DateTimeAttribute,
 	StringAttribute,
@@ -67,6 +68,9 @@ export function AuthStack({ stack }: StackContext) {
 					custom: true,
 					userSrp: true,
 				},
+				idTokenValidity: Duration.days(1),
+				accessTokenValidity: Duration.days(1),
+				refreshTokenValidity: Duration.days(30),
 				supportedIdentityProviders: [
 					UserPoolClientIdentityProvider.COGNITO,
 				],

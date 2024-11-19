@@ -17,6 +17,11 @@ const pincodeTable = Table.pincodeTable.tableName;
 export const deliveryTypes = ["same day", "next day"];
 
 export const createPincode = async (req) => {
+	req.shifts.forEach((shift) => {
+		shift.slots.forEach((slot) => {
+			slot.id = slotId();
+		});
+	});
 	const params = {
 		TableName: pincodeTable,
 		Key: {
@@ -129,4 +134,8 @@ export const searchPincodes = async (query) => {
 		items: data.Items,
 		nextKey: data.nextKey,
 	};
+};
+
+const slotId = () => {
+	return crypto.randomUUID().split("-")[0];
 };
