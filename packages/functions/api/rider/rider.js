@@ -59,6 +59,7 @@ export const patchRiderHandler = middy(async (event) => {
 const patchDocSchema = z
 	.object({
 		document: z.enum([
+			"bankDetails",
 			"userPhoto",
 			"aadharFront",
 			"aadharback",

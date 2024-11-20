@@ -449,26 +449,27 @@ closes a specific runsheet by its ID.
 
 -   **Status 200:**
 
-    ```
-    json
-    ```
+        ```
+        json
+        ```
 
-    `{
-    "riderId": "b452a1fe-694d-430b-ae06-5c5ec5c7cece",
-    "orders": [
-        "401-3385984-2549139",
-        "401-6484620-3193625",
-        "401-4172601-3242039",
-        "401-8100022-9359713",
-        "401-4722680-4109619"
-    ],
-    "amountCollected": 6000,
-    "updatedAt": "2024-10-15T07:47:51.014Z",
-    "amountCollectable": 6274,
-    "status": "closed",
-    "createdAt": "2024-10-15T07:47:51.014Z",
-    "id": "655df2d3ef0b"
-}`
+        `{
+        "riderId": "b452a1fe-694d-430b-ae06-5c5ec5c7cece",
+        "orders": [
+            "401-3385984-2549139",
+            "401-6484620-3193625",
+            "401-4172601-3242039",
+            "401-8100022-9359713",
+            "401-4722680-4109619"
+        ],
+        "amountCollected": 6000,
+        "updatedAt": "2024-10-15T07:47:51.014Z",
+        "amountCollectable": 6274,
+        "status": "closed",
+        "createdAt": "2024-10-15T07:47:51.014Z",
+        "id": "655df2d3ef0b"
+
+    }`
 
 -   **Status 400:**
 
@@ -818,3 +819,129 @@ json
 Copy code
 
 `[ { "pincode": "12345", "deliveryType": "next day", "shifts": [ { "name": "Morning", "slots": [ { "start": "08:00:00", "end": "12:00:00" } ] } ], "active": true }, { "pincode": "67890", "deliveryType": "same day", "shifts": [ { "name": "Evening", "slots": [ { "start": "15:00:00", "end": "20:00:00" } ] } ], "active": false } ]`
+
+# **Create User**
+
+**Endpoint:**\
+`POST /admin/create-user`
+
+**Description:**\
+Creates a new user in the system with the provided details. Sends an email containing the login credentials to the user's email address.
+
+**Request Headers:**
+
+Copy code
+
+`{ "Content-Type": "application/json", "Authorization": "Bearer <admin_token>" }`
+
+**Request Body:**
+
+Copy code
+
+`{ "name": "John Doe", "email": "johndoe@example.com", "role": "admin" }`
+
+**Request Body Schema:**
+
+| Field   | Type   | Required | Description                          |
+| ------- | ------ | -------- | ------------------------------------ |
+| `name`  | string | Yes      | Full name of the user                |
+| `email` | string | Yes      | Email address of the user            |
+| `role`  | enum   | Yes      | Role of the user (`admin`, `packer`) |
+
+**Response:**
+
+-   **200 OK**
+
+    Copy code
+
+    `{ "message": "user created successfully" }`
+
+-   **403 Forbidden**
+
+    Copy code
+
+    `{ "message": "Unauthorized" }`
+
+---
+
+# **List Users**
+
+**Endpoint:** `GET admin/users`
+
+**Description:**\
+Retrieves a paginated list of users. Supports filtering by active status and searching by name.
+
+**Request Headers:**
+
+Copy code
+
+`{ "Authorization": "Bearer <token>" }`
+
+**Query Parameters:**
+
+| Parameter | Type   | Required | Description                                  |
+| --------- | ------ | -------- | -------------------------------------------- |
+| `search`  | string | No       | Filters users whose names contain this query |
+| `active`  | string | No       | Filter by active status (`true` or `false`)  |
+| `nextKey` | string | No       | Pagination token for the next set of results |
+
+**Response:**
+
+-   **200 OK**
+
+    Copy code
+
+    `{ "count": 2, "items": [ { "id": "user123", "name": "John Doe", "email": "johndoe@example.com", "role": "admin", "createdAt": "2024-11-18T10:30:00.000Z", "active": true }, { "id": "user124", "name": "Jane Smith", "email": "janesmith@example.com", "role": "packer", "createdAt": "2024-11-17T15:45:00.000Z", "active": false } ], "nextKey": "abcd1234" }`
+
+---
+
+# **Change Active Status**
+
+**Endpoint:** `PATCH /users`
+
+**Description:**\
+Updates the active status of a user.
+
+**Request Headers:**
+
+Copy code
+
+`{ "Content-Type": "application/json", "Authorization": "Bearer <admin_token>" }`
+
+**Request Body:**
+
+Copy code
+
+`{ "id": "user123", "active": false }`
+
+**Request Body Schema:**
+
+| Field    | Type    | Required | Description                   |
+| -------- | ------- | -------- | ----------------------------- |
+| `id`     | string  | Yes      | ID of the user                |
+| `active` | boolean | Yes      | New active status of the user |
+
+**Response:**
+
+-   **200 OK**
+
+    Copy code
+
+    `{ "id": "user123", "name": "John Doe", "email": "johndoe@example.com", "role": "admin", "createdAt": "2024-11-18T10:30:00.000Z", "active": false }`
+
+-   **404 Not Found**
+
+    Copy code
+
+    `{ "message": "User not found" }`
+
+---
+
+### **Error Responses**
+
+| Status Code | Description                |
+| ----------- | -------------------------- |
+| **400**     | Invalid request parameters |
+| **403**     | Unauthorized access        |
+| **404**     | Resource not found         |
+| **500**     | Internal server error      |

@@ -269,7 +269,7 @@ export function API({ app, stack }: StackContext) {
 					productsTable,
 					inventoryStatsTable,
 					OrdersTable, runsheetTable, riderTable,
-					usersTable, bus, promodeagroUsers, pincodeTable],
+					usersTable, bus, promodeagroUsers, pincodeTable, SENDGRID_API_KEY],
 				environment: {
 					USER_POOL_ID: cognito1.userPoolId,
 					COGNITO_CLIENT: cognito1.userPoolClientId,
@@ -404,6 +404,8 @@ export function API({ app, stack }: StackContext) {
 					bind: [SENDGRID_API_KEY]
 				}
 			},
+			"GET /admin/users": "packages/functions/api/rbac/rbac.listUsersHandler",
+			"PATCH /admin/users": "packages/functions/api/rbac/rbac.changeActiveStatusHandler",
 		},
 	});
 

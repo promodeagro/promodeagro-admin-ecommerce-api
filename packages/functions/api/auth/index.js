@@ -9,11 +9,9 @@ import {
 } from "@aws-sdk/client-cognito-identity-provider";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, QueryCommand } from "@aws-sdk/lib-dynamodb";
-import jwt from "jsonwebtoken";
-import jwkToPem from "jwk-to-pem";
-import { Table } from "sst/node/table";
-import { getCognitoKeys } from "./middleware";
 import crypto from "crypto";
+import jwt from "jsonwebtoken";
+import { Table } from "sst/node/table";
 import { save, update } from "../../common/data";
 // import { generateTokens } from ./jwt";
 const cognitoClient = new CognitoIdentityProviderClient({
@@ -63,7 +61,7 @@ export const signup = async ({ email, name, role, password }) => {
 		new AdminSetUserPasswordCommand(adminSetUserPasswordParams)
 	);
 	const id = crypto.randomUUID();
-	const user = { id: id, email, role, name };
+	const user = { id: id, email, role, name, active: true };
 	await save(usersTable, user);
 	return await signin({
 		email,
@@ -77,20 +75,7 @@ export const signin = async ({ email, password }) => {
 	const refreshToken = authResponse.AuthenticationResult?.RefreshToken;
 
 	const decodedHeader = jwt.decode(idToken, { complete: true });
-	const kid = decodedHeader?.header.kid;
-
-	if (!kid) {
-		return {
-			statusCode: 403,
-			body: "Unauthorized",
-		};
-	}
-	const keys = await getCognitoKeys();
-	const key = keys.find((k) => k.kid === kid);
-	const pem = jwkToPem(key);
-
-	const decoded = jwt.verify(idToken, pem);
-	if (!(decoded["custom:role"] === "admin")) {
+	if (!(decodedHeader.payload["custom:role"] === "admin")) {
 		return {
 			statusCode: 403,
 			body: "Unauthorized",
@@ -281,6 +266,7 @@ export const createRider = async (number) => {
 		reviewStatus: "not_submitted",
 		submittedAt: null,
 		accountVerified: false,
+		active: true,
 	};
 	return await save(riderTable, rider);
 };

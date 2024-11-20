@@ -1,29 +1,26 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import {
-	DynamoDBDocumentClient,
-	PutCommand,
-	ScanCommand,
-	GetCommand,
-	UpdateCommand,
-	QueryCommand,
-	DeleteCommand,
-	TransactWriteCommand,
 	BatchGetCommand,
+	DynamoDBDocumentClient,
+	GetCommand,
+	QueryCommand,
+	ScanCommand,
+	TransactWriteCommand,
 } from "@aws-sdk/lib-dynamodb";
-import { Table } from "sst/node/table";
-import { findAll, findById, save, update } from "../../common/data";
 import crypto from "crypto";
+import { Table } from "sst/node/table";
+import { findAll, findById, update } from "../../common/data";
 
 const client = new DynamoDBClient({ region: "ap-south-1" });
 const docClient = DynamoDBDocumentClient.from(client);
 
 const orderTable = Table.OrdersTable.tableName;
 const runsheetTable = Table.runsheetTable.tableName;
-const riderTable = Table.riderTable.tableName;
+const usersTable = Table.promodeagroUsers.tableName;
 
 export const createRunsheet = async (req) => {
 	const riderExistsParams = {
-		TableName: riderTable,
+		TableName: usersTable,
 		Key: {
 			id: req.riderId,
 		},
@@ -105,12 +102,14 @@ export const runsheetList = async (nextKey) => {
 	const list = await findAll(runsheetTable, nextKey);
 	return await Promise.all(
 		list.items.map(async (item) => {
-			const rider = await findById(riderTable, item.riderId);
-			const riderDetails = {
-				id: item.riderId,
-				name: rider.personalDetails.fullName,
-				number: rider.number,
-			};
+			const rider = await findById(usersTable, item.riderId);
+
+			const riderDetails = {};
+			if (rider) {
+				riderDetails.id = item.riderId;
+				riderDetails.name = rider.personalDetails.fullName;
+				riderDetails.numbder = rider.number;
+			}
 			delete item.riderId;
 			return {
 				...item,
@@ -123,7 +122,7 @@ export const runsheetList = async (nextKey) => {
 export const getRunsheet = async (id) => {
 	const runsheet = await findById(runsheetTable, id);
 	const params = {
-		TableName: riderTable,
+		TableName: usersTable,
 		Key: {
 			id: runsheet.riderId,
 		},
@@ -182,7 +181,7 @@ export const runsheetSearch = async (query) => {
 	const idData = await docClient.send(new ScanCommand(idParams));
 	if (idData.Items.length == 0) {
 		const params = {
-			TableName: riderTable,
+			TableName: usersTable,
 			FilterExpression: "contains(personalDetails.#fullName, :query)",
 			ExpressionAttributeNames: {
 				"#fullName": "fullName",
@@ -210,7 +209,7 @@ export const runsheetSearch = async (query) => {
 		const arr = riderData.flatMap((item) => item.Items);
 		return await Promise.all(
 			arr.map(async (item) => {
-				const rider = await findById(riderTable, item.riderId);
+				const rider = await findById(usersTable, item.riderId);
 				const riderDetails = {
 					id: item.riderId,
 					name: rider.personalDetails.fullName,
@@ -226,7 +225,7 @@ export const runsheetSearch = async (query) => {
 	}
 	return await Promise.all(
 		idData.Items.map(async (item) => {
-			const rider = await findById(riderTable, item.riderId);
+			const rider = await findById(usersTable, item.riderId);
 			const riderDetails = {
 				id: item.riderId,
 				name: rider.personalDetails.fullName,
@@ -297,7 +296,7 @@ export const cashCollectionSearch = async (query) => {
 	const idData = await docClient.send(new ScanCommand(idParams));
 	if (idData.Items.length == 0) {
 		const params = {
-			TableName: riderTable,
+			TableName: usersTable,
 			FilterExpression: "contains(personalDetails.#fullName, :query)",
 			ExpressionAttributeNames: {
 				"#fullName": "fullName",
@@ -354,7 +353,7 @@ const commonRunsheetFunc = async (item) => {
 			deliveredCount++;
 		}
 	});
-	const rider = await findById(riderTable, item.riderId);
+	const rider = await findById(usersTable, item.riderId);
 	const riderDetails = {
 		id: item.riderId,
 		name: rider.personalDetails.fullName,

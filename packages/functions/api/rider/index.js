@@ -35,7 +35,6 @@ export const listRiders = async (status, nextKey) => {
 			":riderRole": "rider",
 		};
 	}
-	console.log(params);
 	const command = new ScanCommand(params);
 	const data = await docClient.send(command);
 	if (data.LastEvaluatedKey) {
@@ -64,18 +63,18 @@ export const getRider = async (id) => {
 	return rider;
 };
 
-export const activateRider = async (id, req) => {
+export const activateRider = async (id, { status, reason }) => {
 	return await update(
 		usersTable,
 		{ id: id },
 		{
 			reviewStatus: status,
-			rejectionReason: null,
+			rejectionReason: reason ?? null,
 		}
 	);
 };
 
-export const rejectRider = async (id, req) => {
+export const rejectRider = async (id, { status, reason }) => {
 	const rider = await findById(usersTable, id);
 	if (!rider) {
 		return {
@@ -117,13 +116,8 @@ export const verifyDocument = async (id, { status, document, reason }) => {
 		);
 	}
 	const documents = rider.documents;
-	console.log(documents);
-	console.log(1);
 	const a = documents.filter((item) => item.name === document);
-	console.log(a);
-	console.log(2);
 	if (status === "verified") {
-		console.log(3);
 		a[0].verified = status;
 	}
 	if (status === "rejected") {
