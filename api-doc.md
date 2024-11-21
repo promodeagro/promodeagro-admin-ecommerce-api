@@ -945,3 +945,54 @@ Copy code
 | **403**     | Unauthorized access        |
 | **404**     | Resource not found         |
 | **500**     | Internal server error      |
+
+### Assign Order to packer
+
+**PUT** `/order/pack`
+
+---
+
+### Request Body
+
+#### Schema
+
+```json
+[
+	{
+		"orderId": "string",
+		"packerId": "string"
+	}
+]
+```
+
+#### Example
+
+Copy code
+
+`[ { "orderId": "12345", "packerId": "packer_01" }, { "orderId": "67890", "packerId": "packer_02" } ]`
+
+---
+
+### Response
+
+#### Success Response
+
+**Status Code:** `200 OK`
+
+Copy code
+
+`{ "message": "Packer assigned to orders successfully" }`
+
+#### Error Response
+
+**Status Code:** `400 Bad Request`
+
+Copy code
+
+`{ "message": "Validation error: [error details]" }`
+
+**Status Code:** `500 Internal Server Error`
+
+Copy code
+
+`{ "message": "Internal server error" }`
