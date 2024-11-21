@@ -883,7 +883,7 @@ Copy code
 | --------- | ------ | -------- | -------------------------------------------- |
 | `search`  | string | No       | Filters users whose names contain this query |
 | `active`  | string | No       | Filter by active status (`true` or `false`)  |
-| `nextKey` | string | No       | Pagination token for the next set of results |
+| `role`    | string | No       | filter users by role(admin, rider, packer)   |
 
 **Response:**
 

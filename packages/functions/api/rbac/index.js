@@ -23,37 +23,38 @@ export const createNewUser = async (req) => {
 	await sendMail(mail);
 };
 
-export const listUsers = async (nextKey, active) => {
+export const listUsers = async (active, role) => {
+	const params = {
+		TableName: usersTable,
+		FilterExpression: "",
+		ExpressionAttributeNames: {},
+		ExpressionAttributeValues: {},
+	};
+
 	if (active) {
-		active = active === "true" ? true : false;
-		const params = {
-			TableName: usersTable,
-			FilterExpression: "#s = :active",
-			ExpressionAttributeNames: {
-				"#s": "active",
-			},
-			ExpressionAttributeValues: {
-				":active": Boolean(active),
-			},
-		};
-		const data = await docClient.send(new ScanCommand(params));
-		data.Items = data.Items.map((user) => ({
-			id: user.id,
-			name: user.name,
-			email:
-				user.role === "rider" ? user.personalDetails.email : user.email,
-			role: user.role,
-			createdAt: user.createdAt,
-			active: user.active ?? true,
-		}));
-		return {
-			count: data.Count,
-			items: data.Items,
-			nextKey: data.nextKey,
-		};
+		active = active === "true";
+		params.FilterExpression = "#s = :active";
+		params.ExpressionAttributeNames["#s"] = "active";
+		params.ExpressionAttributeValues[":active"] = active;
 	}
-	const data = await findAll(usersTable, nextKey);
-	data.items = data.items.map((user) => ({
+
+	if (role) {
+		if (params.FilterExpression) {
+			params.FilterExpression += " AND #r = :role";
+		} else {
+			params.FilterExpression = "#r = :role";
+		}
+		params.ExpressionAttributeNames["#r"] = "role";
+		params.ExpressionAttributeValues[":role"] = role;
+	}
+
+	if (!params.FilterExpression) {
+		delete params.FilterExpression;
+		delete params.ExpressionAttributeNames;
+		delete params.ExpressionAttributeValues;
+	}
+	const data = await docClient.send(new ScanCommand(params));
+	data.Items = data.Items.map((user) => ({
 		id: user.id,
 		name: user.name,
 		email: user.role === "rider" ? user.personalDetails.email : user.email,
@@ -61,7 +62,11 @@ export const listUsers = async (nextKey, active) => {
 		createdAt: user.createdAt,
 		active: user.active ?? true,
 	}));
-	return data;
+	return {
+		count: data.Count,
+		items: data.Items,
+		nextKey: data.nextKey,
+	};
 };
 
 export const changeActiveStatus = async ({ id, active }) => {
@@ -119,7 +124,6 @@ function generatePass(length = 12) {
 	const allCharset =
 		upperCharset + lowerCharset + numberCharset + symbolCharset;
 
-	// Ensure at least one character from each category
 	const getRandomChar = (charset) =>
 		charset[crypto.randomInt(0, charset.length)];
 
@@ -130,12 +134,10 @@ function generatePass(length = 12) {
 		getRandomChar(symbolCharset),
 	];
 
-	// Fill the remaining length with random characters from the full charset
 	for (let i = 4; i < length; i++) {
 		password.push(getRandomChar(allCharset));
 	}
 
-	// Shuffle the password to ensure randomness
 	password = password.sort(() => crypto.randomInt(0, 2) - 1).join("");
 
 	return password;

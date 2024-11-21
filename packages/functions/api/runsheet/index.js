@@ -102,19 +102,24 @@ export const runsheetList = async (nextKey) => {
 	const list = await findAll(runsheetTable, nextKey);
 	return await Promise.all(
 		list.items.map(async (item) => {
-			const rider = await findById(usersTable, item.riderId);
-
-			const riderDetails = {};
-			if (rider) {
-				riderDetails.id = item.riderId;
-				riderDetails.name = rider.personalDetails.fullName;
-				riderDetails.numbder = rider.number;
+			if (item.riderId) {
+				const rider = await findById(usersTable, item.riderId);
+				const riderDetails = {};
+				if (rider) {
+					riderDetails.id = item.riderId;
+					riderDetails.name = rider.personalDetails.fullName;
+					riderDetails.numbder = rider.number;
+				}
+				delete item.riderId;
+				return {
+					...item,
+					rider: riderDetails,
+				};
+			} else {
+				return {
+					...item,
+				};
 			}
-			delete item.riderId;
-			return {
-				...item,
-				rider: riderDetails,
-			};
 		})
 	);
 };

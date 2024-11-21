@@ -374,6 +374,7 @@ export function API({ app, stack }: StackContext) {
 			"PUT /order/{id}/cancel": "packages/functions/api/order/cancel-order.handler",
 			"GET /order/stats": "packages/functions/api/order/order-stats.handler",
 			"PUT /order/proceed": "packages/functions/api/order/proceed-order.handler",
+			"PUT /order/pack": "packages/functions/api/order/assign-packer.handler",
 			"POST /runsheet": "packages/functions/api/runsheet/runsheet.createRunsheetHandler",
 			"GET /runsheet": "packages/functions/api/runsheet/runsheet.listRunsheetHandler",
 			"GET /runsheet/cash-collection": "packages/functions/api/runsheet/runsheet.cashCollectionListHandler",

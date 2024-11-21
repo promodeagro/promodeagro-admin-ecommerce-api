@@ -1,5 +1,5 @@
 import { findAll, save } from "../functions/common/data.js";
-// const products = await findAll("prod-promodeagro-admin-productsTable");
+const orders = await findAll("prod-promodeagro-admin-runsheetTable");
 // const inventory = await findAll("prod-promodeagro-admin-inventoryTable");
 
 // let i = 0;
@@ -13,10 +13,10 @@ import { findAll, save } from "../functions/common/data.js";
 // 	await save("dev-promodeagro-admin-inventoryTable", inven);
 // }
 
-const orders = await findAll("prod-promodeagro-admin-OrdersTable");
+// const orders = await findAll("prod-promodeagro-admin-OrdersTable");
 
 let i = 0;
 for (const order of orders.items) {
 	console.log(`ADDING ORDERS ${i++}`);
-	await save("dev-promodeagro-admin-OrdersTable", order);
+	await save("dev-promodeagro-admin-runsheetTable", order);
 }

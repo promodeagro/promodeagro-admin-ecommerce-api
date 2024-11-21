@@ -148,3 +148,27 @@ export const cancelOrder = async (id, reason) => {
 		}),
 	};
 };
+
+export const assignPacker = async (req) => {
+	const time = new Date().toISOString();
+
+	const batchUpdateParams = {
+		TransactItems: req.map((order) => ({
+			Update: {
+				TableName: orderTable,
+				Key: { id: order.orderId },
+				UpdateExpression:
+					"SET #packerId = :packerId, #packedAt = :packedAt",
+				ExpressionAttributeNames: {
+					"#packerId": "packerId",
+					"#packedAt": "packedAt",
+				},
+				ExpressionAttributeValues: {
+					":packerId": order.packerId,
+					":♂": time,
+				},
+			},
+		})),
+	};
+	await docClient.send(new TransactWriteCommand(batchUpdateParams));
+};

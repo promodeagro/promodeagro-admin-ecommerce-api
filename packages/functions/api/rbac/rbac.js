@@ -1,8 +1,8 @@
-import z from "zod";
 import middy from "@middy/core";
+import z from "zod";
+import { changeActiveStatus, createNewUser, listUsers, searchByName } from ".";
 import { bodyValidator } from "../util/bodyValidator";
 import { errorHandler } from "../util/errorHandler";
-import { listUsers, createNewUser, searchByName, changeActiveStatus } from ".";
 
 const createAdminSchema = z.object({
 	name: z.string(),
@@ -26,17 +26,18 @@ export const createNewUserHandler = middy(async (event) => {
 export const listUsersHandler = middy(async (event) => {
 	let search = event.queryStringParameters?.search || undefined;
 	let active = event.queryStringParameters?.active || undefined;
-	let nextKey = event.queryStringParameters?.nextKey || undefined;
+	let role = event.queryStringParameters?.role || undefined;
 	if (search) {
 		return await searchByName(search);
 	}
-	return await listUsers(nextKey, active);
+	return await listUsers(active, role);
 }).use(errorHandler());
 
 const activeStatusSchema = z.object({
 	id: z.string(),
 	active: z.boolean(),
 });
+
 export const changeActiveStatusHandler = middy(async (event) => {
 	const req = JSON.parse(event.body);
 	return await changeActiveStatus(req);
