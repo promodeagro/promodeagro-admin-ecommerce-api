@@ -165,10 +165,16 @@ export const assignPacker = async (req) => {
 				},
 				ExpressionAttributeValues: {
 					":packerId": order.packerId,
-					":♂": time,
+					":packedAt": time,
 				},
 			},
 		})),
 	};
 	await docClient.send(new TransactWriteCommand(batchUpdateParams));
+	return {
+		statusCode: 200,
+		body: JSON.stringify({
+			message: "success",
+		}),
+	};
 };
