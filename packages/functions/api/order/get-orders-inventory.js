@@ -34,6 +34,7 @@ export const handler = middy(async (event) => {
 			paymentType: item.paymentDetails?.method || undefined,
 			orderStatus: item.status,
 			totalAmount: item.totalPrice,
+			deliverySlot: item.deliverySlot || {},
 			assignee: item?.assigned || undefined,
 			area: item.address.address,
 		};

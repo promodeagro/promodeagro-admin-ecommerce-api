@@ -158,14 +158,16 @@ export const assignPacker = async (req) => {
 				TableName: orderTable,
 				Key: { id: order.orderId },
 				UpdateExpression:
-					"SET #packerId = :packerId, #packedAt = :packedAt",
+					"SET #packerId = :packerId, #packedAt = :packedAt, #status = :status",
 				ExpressionAttributeNames: {
 					"#packerId": "packerId",
 					"#packedAt": "packedAt",
+					"#status": "status",
 				},
 				ExpressionAttributeValues: {
 					":packerId": order.packerId,
 					":packedAt": time,
+					":status": "packed",
 				},
 			},
 		})),

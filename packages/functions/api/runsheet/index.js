@@ -83,9 +83,16 @@ export const createRunsheet = async (req) => {
 			Update: {
 				TableName: orderTable,
 				Key: { id: order.id },
-				UpdateExpression: "SET #status = :newStatus",
-				ExpressionAttributeNames: { "#status": "status" },
-				ExpressionAttributeValues: { ":newStatus": "on the way" },
+				UpdateExpression:
+					"SET #status = :newStatus, #riderId : =riderId",
+				ExpressionAttributeNames: {
+					"#status": "status",
+					"#riderId": "riderId",
+				},
+				ExpressionAttributeValues: {
+					":newStatus": "on the way",
+					":riderId": req.riderId,
+				},
 			},
 		})),
 	];

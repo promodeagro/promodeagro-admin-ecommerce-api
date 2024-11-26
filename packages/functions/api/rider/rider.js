@@ -6,6 +6,7 @@ import {
 	listRiders,
 	rejectRider,
 	verifyDocument,
+	searchListRiders,
 } from ".";
 import { bodyValidator } from "../util/bodyValidator";
 import { errorHandler } from "../util/errorHandler";
@@ -13,6 +14,11 @@ import { errorHandler } from "../util/errorHandler";
 export const listRidersHandler = middy(async (event) => {
 	let nextKey = event.queryStringParameters?.pageKey || undefined;
 	let status = event.queryStringParameters?.status || undefined;
+	let search = event.queryStringParameters?.search || undefined;
+	if (search) {
+		return await searchListRiders(search);
+	}
+
 	return await listRiders(status, nextKey);
 }).use(errorHandler());
 

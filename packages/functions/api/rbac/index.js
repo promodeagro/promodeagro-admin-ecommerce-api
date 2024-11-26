@@ -2,7 +2,7 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, ScanCommand } from "@aws-sdk/lib-dynamodb";
 import crypto from "crypto";
 import { Table } from "sst/node/table";
-import { findAll, update } from "../../common/data";
+import { findById, update } from "../../common/data";
 import { signup } from "../auth";
 import { sendMail } from "../auth/sendMail";
 
@@ -69,6 +69,17 @@ export const listUsers = async (active, role) => {
 	};
 };
 
+export const getUser = async (id) => {
+	const data = await findById(usersTable, id);
+	return {
+		id: data.id,
+		name: data.name,
+		email: data.role === "rider" ? data.personalDetails.email : data.email,
+		role: data.role,
+		createdAt: data.createdAt,
+		active: data.active ?? true,
+	};
+};
 export const changeActiveStatus = async ({ id, active }) => {
 	const data = await update(
 		usersTable,

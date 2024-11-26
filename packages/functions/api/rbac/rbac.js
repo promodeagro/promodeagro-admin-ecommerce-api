@@ -1,6 +1,12 @@
 import middy from "@middy/core";
 import z from "zod";
-import { changeActiveStatus, createNewUser, listUsers, searchByName } from ".";
+import {
+	changeActiveStatus,
+	createNewUser,
+	listUsers,
+	searchByName,
+	getUser,
+} from ".";
 import { bodyValidator } from "../util/bodyValidator";
 import { errorHandler } from "../util/errorHandler";
 
@@ -44,3 +50,14 @@ export const changeActiveStatusHandler = middy(async (event) => {
 })
 	.use(bodyValidator(activeStatusSchema))
 	.use(errorHandler());
+
+export const getUserHandler = middy(async (event) => {
+	let id = event.pathParameters?.id;
+	if (!id) {
+		return {
+			statusCode: 400,
+			body: JSON.stringify({ message: "id is required" }),
+		};
+	}
+	return await getUser(id);
+}).use(errorHandler());

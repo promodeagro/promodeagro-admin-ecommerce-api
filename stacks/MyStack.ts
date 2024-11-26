@@ -406,6 +406,7 @@ export function API({ app, stack }: StackContext) {
 				}
 			},
 			"GET /admin/users": "packages/functions/api/rbac/rbac.listUsersHandler",
+			"GET /admin/users/{id}": "packages/functions/api/rbac/rbac.getUserHandler",
 			"PATCH /admin/users": "packages/functions/api/rbac/rbac.changeActiveStatusHandler",
 		},
 	});

@@ -58,6 +58,45 @@ export const listRiders = async (status, nextKey) => {
 	};
 };
 
+export const searchListRiders = async (query) => {
+	let nextKey;
+	const params = {
+		TableName: usersTable,
+		FilterExpression: "contains(#s_name, :query) AND #role = :riderRole",
+		ExpressionAttributeNames: {
+			"#s_name": "s_name",
+			"#role": "role",
+		},
+		ExpressionAttributeValues: {
+			":query": query,
+			":riderRole": "rider",
+		},
+	};
+
+	const command = new ScanCommand(params);
+	const data = await docClient.send(command);
+	if (data.LastEvaluatedKey) {
+		nextKey = data.LastEvaluatedKey.id;
+	} else {
+		nextKey = undefined;
+	}
+
+	const modData = data.Items.map((item) => ({
+		...item,
+		bankDetails: undefined,
+		documents: undefined,
+		otpExpire: undefined,
+		accountVerified: undefined,
+		otp: undefined,
+		s_name: undefined,
+	}));
+	return {
+		count: data.Count,
+		items: modData,
+		nextKey: nextKey,
+	};
+};
+
 export const getRider = async (id) => {
 	const rider = await findById(usersTable, id);
 	return rider;

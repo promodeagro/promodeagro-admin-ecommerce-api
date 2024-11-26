@@ -33,6 +33,8 @@ export const handler = middy(async (event) => {
 			zipcode: orderData.address.zipCode,
 		},
 		items: orderData.items,
+		packerId: orderData.packerId || "",
+		riderId: orderData.riderId || "",
 		tax: parseInt(orderData.tax).toFixed(2),
 		deliveryCharges: parseInt(orderData.deliveryCharges).toFixed(2),
 		subTotal: parseInt(orderData.subTotal).toFixed(2),
