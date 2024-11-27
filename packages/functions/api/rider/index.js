@@ -1,12 +1,14 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, ScanCommand } from "@aws-sdk/lib-dynamodb";
 import { Table } from "sst/node/table";
-import { findById, update } from "../../common/data";
+import { findById, save, update } from "../../common/data";
+import { notification } from "../util/notification";
 
 const client = new DynamoDBClient({ region: "ap-south-1" });
 const docClient = DynamoDBDocumentClient.from(client);
 
 const usersTable = Table.promodeagroUsers.tableName;
+const notificationsTable = Table.notificationsTable.tableName;
 
 export const listRiders = async (status, nextKey) => {
 	const params = {
@@ -103,6 +105,13 @@ export const getRider = async (id) => {
 };
 
 export const activateRider = async (id, { status, reason }) => {
+	const newNot = notification(
+		id,
+		"rider_profile_activated",
+		"You profile has been activated"
+	);
+
+	await save(notificationsTable, newNot);
 	return await update(
 		usersTable,
 		{ id: id },
@@ -121,6 +130,14 @@ export const rejectRider = async (id, { status, reason }) => {
 			body: JSON.stringify({ message: "rider not found" }),
 		};
 	}
+	const newNot = notification(
+		id,
+		"rider_profile_rejected",
+		`You profile has been rejected for following reason ${reason}`
+	);
+
+	await save(notificationsTable, newNot);
+
 	return await update(
 		usersTable,
 		{ id: id },
@@ -136,6 +153,9 @@ export const verifyDocument = async (id, { status, document, reason }) => {
 			body: JSON.stringify({ message: "rider not found" }),
 		};
 	}
+	let type;
+	let message;
+
 	if (document === "bankDetails") {
 		rider.bankDetails.status = status;
 		if (status === "verified") {
@@ -144,7 +164,11 @@ export const verifyDocument = async (id, { status, document, reason }) => {
 		}
 		if (status === "rejected") {
 			rider.bankDetails.reason = reason;
+			type = "document_rejected";
+			message = `Your bank details has been rejected for the following reason ${reason}`;
 		}
+		const newNot = notification(id, type, message);
+		await save(notificationsTable, newNot);
 		return await update(
 			usersTable,
 			{ id: id },
@@ -162,6 +186,10 @@ export const verifyDocument = async (id, { status, document, reason }) => {
 	if (status === "rejected") {
 		a[0].verified = status;
 		a[0].rejectionReason = reason;
+		type = "document_rejected";
+		message = `Your ${document} has been rejected for the following reason ${reason}`;
 	}
+	const newNot = notification(id, type, message);
+	await save(notificationsTable, newNot);
 	return await update(usersTable, { id: id }, { documents: documents });
 };

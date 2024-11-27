@@ -10,6 +10,7 @@ import {
 import crypto from "crypto";
 import { Table } from "sst/node/table";
 import { findAll, findById, update } from "../../common/data";
+import { notification } from "../util/notification";
 
 const client = new DynamoDBClient({ region: "ap-south-1" });
 const docClient = DynamoDBDocumentClient.from(client);
@@ -17,6 +18,7 @@ const docClient = DynamoDBDocumentClient.from(client);
 const orderTable = Table.OrdersTable.tableName;
 const runsheetTable = Table.runsheetTable.tableName;
 const usersTable = Table.promodeagroUsers.tableName;
+const notificationsTable = Table.notificationsTable.tableName;
 
 export const createRunsheet = async (req) => {
 	const riderExistsParams = {
@@ -63,20 +65,32 @@ export const createRunsheet = async (req) => {
 	const amountCollectable = validOrders
 		.filter((item) => item.paymentDetails.method === "cash")
 		.reduce((acc, order) => acc + parseInt(order.totalPrice), 0);
+	const newDate = new Date().toISOString();
 	const runsheet = {
 		id: crypto.randomUUID().split("-")[4],
 		orders: validOrders.map((order) => order.id),
 		status: "pending",
 		amountCollectable,
 		riderId: req.riderId,
-		createdAt: new Date().toISOString(),
-		updatedAt: new Date().toISOString(),
+		createdAt: newDate,
+		updatedAt: newDate,
 	};
+	const newNot = notification(
+		req.riderId,
+		"new_runsheet",
+		"You have received a new delivery runsheet"
+	);
 	const transactItems = [
 		{
 			Put: {
 				TableName: runsheetTable,
 				Item: runsheet,
+			},
+		},
+		{
+			Put: {
+				TableName: notificationsTable,
+				Item: newNot,
 			},
 		},
 		...validOrders.map((order) => ({
@@ -115,7 +129,7 @@ export const runsheetList = async (nextKey) => {
 				if (rider) {
 					riderDetails.id = item.riderId;
 					riderDetails.name = rider.personalDetails.fullName;
-					riderDetails.numbder = rider.number;
+					riderDetails.number = rider.number;
 				}
 				delete item.riderId;
 				return {

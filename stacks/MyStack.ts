@@ -193,13 +193,6 @@ export function API({ app, stack }: StackContext) {
 		}
 	);
 
-	const inventoryStatsTable = new Table(stack, "inventoryStatsTable", {
-		fields: {
-			id: "string",
-		},
-		primaryIndex: { partitionKey: "id" },
-	});
-
 	const runsheetTable = new Table(stack, "runsheetTable", {
 		fields: {
 			id: "string",
@@ -227,12 +220,23 @@ export function API({ app, stack }: StackContext) {
 		primaryIndex: { partitionKey: "pincode" },
 	});
 
-	const riderTable = new Table(
-		stack,
-		"riderTable", {
-		cdk: { table: dynamodb.Table.fromTableArn(this, "RIDER_TABLE", isProd ? "arn:aws:dynamodb:ap-south-1:851725323791:table/prod-promodeagro-rider-ridersTable" : "arn:aws:dynamodb:ap-south-1:851725323791:table/Sohail-Shah-promodeagro-rider-ridersTable") }
-	}
-	)
+	const notificationsTable = new Table(stack, "notificationsTable", {
+		fields: {
+			id: "string",
+			type: "string",
+			userId: "string",
+			message: "string",
+			read: "binary",
+			createdAt: "string",
+			metadata: "string",
+			ttl: "number"
+		},
+		primaryIndex: { partitionKey: "id" },
+		globalIndexes: {
+			userIndex: { partitionKey: "userId" }
+		},
+		timeToLiveAttribute: "ttl"
+	});
 
 	const bus = new EventBus(stack, "bus", {
 		defaults: {
@@ -267,8 +271,8 @@ export function API({ app, stack }: StackContext) {
 				bind: [inventoryTable,
 					inventoryModificationTable,
 					productsTable,
-					inventoryStatsTable,
-					OrdersTable, runsheetTable, riderTable,
+					OrdersTable, runsheetTable,
+					notificationsTable,
 					usersTable, bus, promodeagroUsers, pincodeTable, SENDGRID_API_KEY],
 				environment: {
 					USER_POOL_ID: cognito1.userPoolId,
@@ -408,6 +412,7 @@ export function API({ app, stack }: StackContext) {
 			"GET /admin/users": "packages/functions/api/rbac/rbac.listUsersHandler",
 			"GET /admin/users/{id}": "packages/functions/api/rbac/rbac.getUserHandler",
 			"PATCH /admin/users": "packages/functions/api/rbac/rbac.changeActiveStatusHandler",
+			"GET /notification/{id}": "packages/functions/api/notification/notification.listHandler",
 		},
 	});
 
@@ -421,6 +426,5 @@ export function API({ app, stack }: StackContext) {
 	return {
 		api,
 		OrdersTable,
-		riderTable
 	};
 }
