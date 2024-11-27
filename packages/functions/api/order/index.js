@@ -14,7 +14,13 @@ const docClient = DynamoDBDocumentClient.from(client);
 const orderTable = Table.OrdersTable.tableName;
 const inventoryTable = Table.inventoryTable.tableName;
 
-export const listOrdersInventory = async (type, date, status, nextKey) => {
+export const listOrdersInventory = async (
+	type,
+	date,
+	status,
+	shift,
+	nextKey
+) => {
 	let dateQuery;
 	let now = new Date();
 	let d = date;
@@ -61,10 +67,19 @@ export const listOrdersInventory = async (type, date, status, nextKey) => {
 		params.KeyConditionExpression = "#s = :status AND " + dateQuery;
 		expressionNames["#s"] = "status";
 		expressionValues[":status"] = status;
+		const filterExpressions = [];
 		if (type) {
-			params.FilterExpression = "paymentDetails.#m = :method";
+			filterExpressions.push("paymentDetails.#m = :method");
 			expressionNames["#m"] = "method";
 			expressionValues[":method"] = type;
+		}
+		if (shift) {
+			filterExpressions.push("deliverySlot.#sh = :shift");
+			expressionNames["#sh"] = "shift";
+			expressionValues[":shift"] = shift;
+		}
+		if (filterExpressions.length > 0) {
+			params.FilterExpression = filterExpressions.join(" AND ");
 		}
 	} else {
 		params.FilterExpression = dateQuery;
@@ -73,12 +88,16 @@ export const listOrdersInventory = async (type, date, status, nextKey) => {
 			expressionNames["#m"] = "method";
 			expressionValues[":method"] = type;
 		}
+		if (shift) {
+			params.FilterExpression += " AND deliverySlot.#sh = :shift";
+			expressionNames["#sh"] = "shift";
+			expressionValues[":shift"] = shift;
+		}
 	}
 
 	params.ExpressionAttributeNames =
 		Object.keys(expressionNames).length > 0 ? expressionNames : undefined;
 	params.ExpressionAttributeValues = expressionValues;
-
 	command = status ? new QueryCommand(params) : new ScanCommand(params);
 
 	const data = await docClient.send(command);

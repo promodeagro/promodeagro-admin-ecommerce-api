@@ -50,7 +50,7 @@ export const createRunsheet = async (req) => {
 		new BatchGetCommand(ordersParams)
 	);
 	const orders = ordersResponse.Responses[orderTable];
-	const validOrders = orders.filter((item) => item.status === "order placed");
+	const validOrders = orders.filter((item) => item.status === "packed");
 	if (validOrders.length == 0) {
 		return {
 			statusCode: 400,
@@ -84,7 +84,7 @@ export const createRunsheet = async (req) => {
 				TableName: orderTable,
 				Key: { id: order.id },
 				UpdateExpression:
-					"SET #status = :newStatus, #riderId : =riderId",
+					"SET #status = :newStatus, #riderId = :riderId",
 				ExpressionAttributeNames: {
 					"#status": "status",
 					"#riderId": "riderId",

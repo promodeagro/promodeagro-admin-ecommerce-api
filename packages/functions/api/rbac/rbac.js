@@ -3,9 +3,9 @@ import z from "zod";
 import {
 	changeActiveStatus,
 	createNewUser,
+	getUser,
 	listUsers,
 	searchByName,
-	getUser,
 } from ".";
 import { bodyValidator } from "../util/bodyValidator";
 import { errorHandler } from "../util/errorHandler";
