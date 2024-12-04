@@ -66,8 +66,9 @@ export const createRunsheet = async (req) => {
 		.filter((item) => item.paymentDetails.method === "cash")
 		.reduce((acc, order) => acc + parseInt(order.totalPrice), 0);
 	const newDate = new Date().toISOString();
+	const runsheetId = crypto.randomUUID().split("-")[4];
 	const runsheet = {
-		id: crypto.randomUUID().split("-")[4],
+		id: runsheetId,
 		orders: validOrders.map((order) => order.id),
 		status: "pending",
 		amountCollectable,
@@ -75,11 +76,7 @@ export const createRunsheet = async (req) => {
 		createdAt: newDate,
 		updatedAt: newDate,
 	};
-	const newNot = notification(
-		req.riderId,
-		"new_runsheet",
-		"You have received a new delivery runsheet"
-	);
+	const newNot = notification(req.riderId, "new_runsheet", `${runsheetId}`);
 	const transactItems = [
 		{
 			Put: {

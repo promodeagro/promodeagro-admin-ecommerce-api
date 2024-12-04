@@ -16,9 +16,12 @@ import { findById } from "../../common/data";
 const client = new DynamoDBClient({ region: "ap-south-1" });
 const docClient = DynamoDBDocumentClient.from(client);
 
+const productsTable = Table.productsTable.tableName;
+const inventoryTable = Table.inventoryTable.tableName;
+
 export async function list(nextKey) {
 	const params = {
-		TableName: Table.productsTable.tableName,
+		TableName: productsTable,
 		Limit: 50,
 		ExclusiveStartKey: nextKey
 			? {
@@ -26,7 +29,6 @@ export async function list(nextKey) {
 			  }
 			: undefined,
 	};
-	console.log(params);
 	const command = new ScanCommand(params);
 	const data = await docClient.send(command);
 	if (data.LastEvaluatedKey) {
@@ -51,7 +53,6 @@ export async function list(nextKey) {
 			};
 		})
 	);
-	console.log(res);
 	return {
 		count: data.Count,
 		items: res,
@@ -90,7 +91,6 @@ export const updateItemPricing = async (item) => {
 	try {
 		const command = new UpdateCommand(params);
 		const response = await docClient.send(command);
-		console.log("Update succeeded:", response.Attributes);
 		return response.Attributes;
 	} catch (error) {
 		console.error("Unable to update item. Error:", error);
@@ -100,7 +100,7 @@ export const updateItemPricing = async (item) => {
 
 export async function get(id) {
 	const params = {
-		TableName: Table.productsTable.tableName,
+		TableName: productsTable,
 		Key: {
 			id: id,
 		},
@@ -125,7 +125,7 @@ export async function get(id) {
 
 export const searchByName = async (query) => {
 	const params = {
-		TableName: Table.productsTable.tableName,
+		TableName: productsTable,
 		FilterExpression: "contains(#search_name, :query)",
 		ExpressionAttributeNames: {
 			"#search_name": "search_name",
@@ -175,10 +175,7 @@ export const searchByItemCode = async (query) => {
 	const data = await docClient.send(command);
 	const res = await Promise.all(
 		data.Items.map(async (item) => {
-			const productData = await findById(
-				Table.productsTable.tableName,
-				item.productId
-			);
+			const productData = await findById(productsTable, item.productId);
 			return {
 				...item,
 				...productData,
@@ -205,7 +202,7 @@ export const inventoryByCategory = async (
 	active
 ) => {
 	const params = {
-		TableName: Table.productsTable.tableName,
+		TableName: productsTable,
 		ExpressionAttributeNames: {},
 		ExpressionAttributeValues: {},
 		FilterExpression: "",
@@ -289,13 +286,13 @@ export async function deleteItemById(tableName, id) {
 }
 
 export const updateItem = async (id, item) => {
-	const product = await findById(Table.productsTable.tableName, id);
+	const product = await findById(productsTable, id);
 	const now = new Date().toISOString(); // Current timestamp in ISO format
 	const transactParams = {
 		TransactItems: [
 			{
 				Update: {
-					TableName: Table.productsTable.tableName,
+					TableName: productsTable,
 					Key: { id: id },
 					UpdateExpression:
 						"SET #nm = :name, #snm = :search_name, #desc = :description, #cat = :category, #subcat = :subCategory, #unt = :unit, #upd = :updatedAt",
@@ -341,13 +338,54 @@ export const updateItem = async (id, item) => {
 	const result = await docClient.send(
 		new TransactWriteCommand(transactParams)
 	);
-	console.log(JSON.stringify(result, null, 2));
+};
+
+export const updateItemStatus = async (req) => {
+	const active = req.filter((item) => item.active === true);
+	if (active.length !== 0) {
+		const invenItems = await Promise.all(
+			active.map((item) => inventoryByProdId(item.id))
+		);
+		for (const item of invenItems) {
+			if (!item.onlineStorePrice || !item.compareAt) {
+				return {
+					statusCode: 400,
+					body: JSON.stringify({
+						message: "add product prices before activating them",
+					}),
+				};
+			}
+		}
+	}
+
+	const writeParams = {
+		TransactItems: req.map((item) => ({
+			Update: {
+				TableName: productsTable,
+				Key: { id: item.id },
+				UpdateExpression: "SET #availability = :availability",
+				ExpressionAttributeNames: {
+					"#availability": "availability",
+				},
+				ExpressionAttributeValues: {
+					":availability": item.active,
+				},
+			},
+		})),
+	};
+	await docClient.send(new TransactWriteCommand(writeParams));
+	return {
+		statusCode: 200,
+		body: JSON.stringify({
+			message: "item updated successfully",
+		}),
+	};
 };
 
 // export const updateProductStatus = async (req) => {
 // 	const params = {
 // 		RequestItems: {
-// 			[Table.productsTable.tableName]: {
+// 			[productsTable]: {
 // 				Keys: req.map((item) => ({ id: item.id })),
 // 			},
 // 		},
@@ -357,7 +395,6 @@ export const updateItem = async (id, item) => {
 // 	const products = Object.values(data.Responses)[0];
 // 	const invalid = [];
 // 	const putReq = products.filter((item) => {
-// 			console.log(JSON.stringify(item,null,2));
 // 			if (item.onlineStorePrice == undefined) {
 // 				invalid.push(item.id);
 // 				return false;
@@ -371,5 +408,4 @@ export const updateItem = async (id, item) => {
 // 				},
 // 			};
 // 		});
-// 	console.log(JSON.stringify(putReq, null, 2));
 // };

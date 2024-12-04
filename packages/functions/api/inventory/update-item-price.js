@@ -5,7 +5,7 @@ import middy from "@middy/core";
 import { bodyValidator } from "../util/bodyValidator";
 import { errorHandler } from "../util/errorHandler";
 import { Events } from "./events";
-import { v4 as uuidv4 } from "uuid";
+import crypto from "crypto";
 
 export const reqSchmea = z.array(
 	z
@@ -19,9 +19,7 @@ export const reqSchmea = z.array(
 		})
 );
 export const handler = middy(async (event) => {
-	console.log(1);
 	const req = JSON.parse(event.body);
-	console.log(2);
 	await Promise.all(
 		req.map(async (item) => {
 			const product = await findById(
@@ -48,9 +46,7 @@ export const handler = middy(async (event) => {
 			);
 		})
 	);
-	console.log(3);
 	await Events.PriceUpdate.publish(req);
-	console.log(4);
 	return {
 		statusCode: 200,
 		body: JSON.stringify({ message: "success" }),
@@ -58,7 +54,6 @@ export const handler = middy(async (event) => {
 })
 	.use(bodyValidator(reqSchmea))
 	.use(errorHandler());
-
 
 // function calculateUnitPrices(units, price, savings, existingUnitPrices) {
 // 	const prices = [];
@@ -84,7 +79,7 @@ export const handler = middy(async (event) => {
 // 				} else {
 // 					// Create a new variant if it doesn't exist
 // 					prices.push({
-// 						varient_id: uuidv4(), // Generate a new variant ID
+// 						varient_id: crypto.randomUUID(), // Generate a new variant ID
 // 						qty: unit,
 // 						mrp: unitCompareAt,
 // 						savings: discountedSavings,
@@ -107,7 +102,7 @@ export const handler = middy(async (event) => {
 // 			} else {
 // 				// Create a new variant if it doesn't exist
 // 				prices.push({
-// 					varient_id: uuidv4(), // Generate a new variant ID
+// 					varient_id: crypto.randomUUID(), // Generate a new variant ID
 // 					qty: 1,
 // 					price: price,
 // 					savings: Math.abs(price - savings),
@@ -116,7 +111,6 @@ export const handler = middy(async (event) => {
 // 			}
 
 // 		}
-
 
 // 	} else {
 
@@ -128,7 +122,7 @@ export const handler = middy(async (event) => {
 
 // 				// Create a new variant if it doesn't exist
 // 				prices.push({
-// 					varient_id: uuidv4(), // Generate a new variant ID
+// 					varient_id: crypto.randomUUID(), // Generate a new variant ID
 // 					qty: unit,
 // 					mrp: unitCompareAt,
 // 					savings: discountedSavings,
@@ -139,14 +133,13 @@ export const handler = middy(async (event) => {
 // 		} else {
 // 			// Create a new variant if it doesn't exist
 // 			prices.push({
-// 				varient_id: uuidv4(), // Generate a new variant ID
+// 				varient_id: crypto.randomUUID(), // Generate a new variant ID
 // 				qty: 1,
 // 				price: price,
 // 				savings: Math.abs(price - savings),
 // 				discountedPrice: Math.abs(price - savings),
 // 			});
 // 		}
-
 
 // 	}
 // 	return prices;
@@ -158,14 +151,16 @@ function calculateUnitPrices(units, price, savings, existingUnitPrices) {
 	if (existingUnitPrices.unitPrices) {
 		if (units === "grams") {
 			for (const unit of diffUnits) {
-				const existingVariant = existingUnitPrices.unitPrices.find(p => p.qty === 1);
-				
+				const existingVariant = existingUnitPrices.unitPrices.find(
+					(p) => p.qty === 1
+				);
+
 				const unitPrice = Math.round((unit / 1000) * price);
 				const unitCompareAt = Math.round((unit / 1000) * savings);
 				const discountedSavings = Math.abs(unitPrice - unitCompareAt);
 
 				prices.push({
-					varient_id: existingVariant.varient_id , // Use existing variant ID or generate a new one
+					varient_id: existingVariant.varient_id, // Use existing variant ID or generate a new one
 					qty: unit,
 					mrp: unitCompareAt,
 					savings: discountedSavings,
@@ -173,11 +168,15 @@ function calculateUnitPrices(units, price, savings, existingUnitPrices) {
 				});
 			}
 		} else {
-			const existingVariant = existingUnitPrices.unitPrices.find(p => p.qty === 1);
+			const existingVariant = existingUnitPrices.unitPrices.find(
+				(p) => p.qty === 1
+			);
 			const discountedSavings = Math.abs(price - savings);
 
 			prices.push({
-				varient_id: existingVariant ? existingVariant.varient_id : uuidv4(), // Use existing variant ID or generate a new one
+				varient_id: existingVariant
+					? existingVariant.varient_id
+					: crypto.randomUUID(), // Use existing variant ID or generate a new one
 				qty: 1,
 				price: price,
 				savings: discountedSavings,
@@ -192,7 +191,7 @@ function calculateUnitPrices(units, price, savings, existingUnitPrices) {
 				const discountedSavings = Math.abs(unitPrice - unitCompareAt);
 
 				prices.push({
-					varient_id: uuidv4(), // Generate a new variant ID
+					varient_id: crypto.randomUUID(), // Generate a new variant ID
 					qty: unit,
 					mrp: unitCompareAt,
 					savings: discountedSavings,
@@ -203,7 +202,7 @@ function calculateUnitPrices(units, price, savings, existingUnitPrices) {
 			const discountedSavings = Math.abs(price - savings);
 
 			prices.push({
-				varient_id: uuidv4(), // Generate a new variant ID
+				varient_id: crypto.randomUUID(), // Generate a new variant ID
 				qty: 1,
 				price: price,
 				savings: discountedSavings,

@@ -186,7 +186,7 @@ export const assignPacker = async (req) => {
 				ExpressionAttributeValues: {
 					":packerId": order.packerId,
 					":packedAt": time,
-					":status": "packed",
+					":status": "order processing",
 				},
 			},
 		})),
