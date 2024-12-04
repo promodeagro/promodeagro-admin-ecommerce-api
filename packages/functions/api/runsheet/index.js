@@ -52,7 +52,9 @@ export const createRunsheet = async (req) => {
 		new BatchGetCommand(ordersParams)
 	);
 	const orders = ordersResponse.Responses[orderTable];
-	const validOrders = orders.filter((item) => item.status === "packed");
+	const validOrders = orders.filter(
+		(item) => item.status === "packed" || item.status === "undelivered"
+	);
 	if (validOrders.length == 0) {
 		return {
 			statusCode: 400,
@@ -76,7 +78,11 @@ export const createRunsheet = async (req) => {
 		createdAt: newDate,
 		updatedAt: newDate,
 	};
-	const newNot = notification(req.riderId, "new_runsheet", `${runsheetId}`);
+	const newNot = notification(
+		req.riderId,
+		"new_runsheet",
+		runsheetId.toString()
+	);
 	const transactItems = [
 		{
 			Put: {
