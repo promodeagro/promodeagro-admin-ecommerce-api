@@ -150,22 +150,32 @@ export const runsheetList = async (nextKey) => {
 
 export const getRunsheet = async (id) => {
 	const runsheet = await findById(runsheetTable, id);
+
 	const params = {
-		TableName: usersTable,
-		Key: {
-			id: runsheet.riderId,
-		},
-		ProjectionExpression: "#pd.#fn",
-		ExpressionAttributeNames: {
-			"#pd": "personalDetails",
-			"#fn": "fullName",
+		RequestItems: {
+			[orderTable]: {
+				Keys: runsheet.orders.map((orderId) => ({ id: orderId })),
+				ProjectionExpression:
+					"totalPrice, paymentDetails, #s, tax, createdAt, #it, totalSavings, statusDetails, deliveryCharges, subTotal, deliverySlot",
+				ExpressionAttributeNames: {
+					"#s": "status",
+					"#it": "items",
+				},
+			},
+			[usersTable]: {
+				Keys: [{ id: runsheet.riderId }],
+				ProjectionExpression: "personalDetails.fullName",
+			},
 		},
 	};
-	const rider = await docClient.send(new GetCommand(params));
+	const bacthRes = await docClient.send(new BatchGetCommand(params));
+	const orders = bacthRes.Responses[orderTable];
+	const rider = bacthRes.Responses[usersTable];
 	const riderDetails = {
 		id: runsheet.riderId,
-		name: rider.Item.personalDetails.fullName,
+		name: rider[0].personalDetails.fullName,
 	};
+	runsheet.orders = orders;
 	delete runsheet.riderId;
 	return { ...runsheet, rider: riderDetails };
 };

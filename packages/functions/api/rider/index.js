@@ -165,7 +165,7 @@ export const verifyDocument = async (id, { status, document, reason }) => {
 		if (status === "rejected") {
 			rider.bankDetails.reason = reason;
 			type = "document_rejected";
-			message = `Your bank details has been rejected for the following reason ${reason}`;
+			message = `${document} has been rejected for the following reason ${reason}`;
 		}
 		const newNot = notification(id, type, message);
 		await save(notificationsTable, newNot);
@@ -187,7 +187,7 @@ export const verifyDocument = async (id, { status, document, reason }) => {
 		a[0].verified = status;
 		a[0].rejectionReason = reason;
 		type = "document_rejected";
-		message = `Your ${document} has been rejected for the following reason ${reason}`;
+		message = `${document} has been rejected for the following reason ${reason}`;
 	}
 	const newNot = notification(id, type, message);
 	await save(notificationsTable, newNot);

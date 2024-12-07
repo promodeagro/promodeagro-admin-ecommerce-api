@@ -52,7 +52,6 @@ export const patchRiderHandler = middy(async (event) => {
 		};
 	}
 	const req = JSON.parse(event.body);
-	console.log(JSON.stringify(req, null, 2));
 	if (req.status == "active" || req.status == "inactive") {
 		return await activateRider(id, req);
 	} else {

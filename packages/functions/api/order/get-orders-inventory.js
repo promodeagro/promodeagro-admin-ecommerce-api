@@ -17,12 +17,20 @@ export const handler = middy(async (event) => {
 	let date = event.queryStringParameters?.date || undefined;
 	let status = event.queryStringParameters?.status || undefined;
 	let shift = event.queryStringParameters?.shift || undefined;
+	let pincode = event.queryStringParameters?.pincode || undefined;
 	let search = event.queryStringParameters?.search || undefined;
 	let data = {};
 	if (search) {
 		data.items = await checkQuery(search);
 	} else {
-		data = await listOrdersInventory(type, date, status, shift, nextKey);
+		data = await listOrdersInventory(
+			type,
+			date,
+			status,
+			shift,
+			pincode,
+			nextKey
+		);
 	}
 	const itemsArray = Array.isArray(data.items) ? data.items : [data.items];
 	const res = itemsArray.map((item) => {
@@ -37,7 +45,7 @@ export const handler = middy(async (event) => {
 			totalAmount: item.totalPrice,
 			deliverySlot: item.deliverySlot || {},
 			assignee: item?.assigned || undefined,
-			cancellationData: item?.cancellationData || {},
+			statusDetails: item?.statusDetails || {},
 			area: item.address.address,
 		};
 	});

@@ -19,6 +19,7 @@ export const listOrdersInventory = async (
 	date,
 	status,
 	shift,
+	pincode,
 	nextKey
 ) => {
 	let dateQuery;
@@ -78,6 +79,12 @@ export const listOrdersInventory = async (
 			expressionNames["#sh"] = "shift";
 			expressionValues[":shift"] = shift;
 		}
+		if (pincode) {
+			filterExpressions.push("address.#pn = :zipCode");
+			expressionNames["#pn"] = "zipCode";
+			expressionValues[":zipCode"] = pincode;
+		}
+
 		if (filterExpressions.length > 0) {
 			params.FilterExpression = filterExpressions.join(" AND ");
 		}
@@ -92,6 +99,11 @@ export const listOrdersInventory = async (
 			params.FilterExpression += " AND deliverySlot.#sh = :shift";
 			expressionNames["#sh"] = "shift";
 			expressionValues[":shift"] = shift;
+		}
+		if (pincode) {
+			params.FilterExpression += " AND address.#pn = :zipCode";
+			expressionNames["#pn"] = "zipCode";
+			expressionValues[":zipCode"] = pincode;
 		}
 	}
 

@@ -71,7 +71,7 @@ export const cashCollectionListHandler = middy(async (event) => {
 	if (search) {
 		return await cashCollectionSearch(search);
 	}
-	if (status !== "closed" || status !== "pending" || status !== "active") {
+	if (status !== "closed" && status !== "pending" && status !== "active") {
 		status = "active";
 	}
 	// if (date == undefined) {
