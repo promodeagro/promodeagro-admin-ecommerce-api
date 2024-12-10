@@ -24,6 +24,8 @@ export const listOrdersInventory = async (
 ) => {
 	let dateQuery;
 	let now = new Date();
+	now.setHours(0, 0, 0, 0);
+	let end;
 	let d = date;
 	if (d == undefined) {
 		now.setDate(now.getDate() - 7);
@@ -43,6 +45,13 @@ export const listOrdersInventory = async (
 	} else if (d == "7") {
 		now.setDate(now.getDate() - 7);
 		dateQuery = `createdAt > :date`;
+	} else if (d == "today") {
+		dateQuery = `createdAt > :date`;
+	} else if (d == "yesterday") {
+		now.setDate(now.getDate() - 1);
+		end = new Date(now);
+		end.setDate(end.getDate() + 1);
+		dateQuery = `createdAt > :date AND createdAt < :end`;
 	}
 
 	const params = {
@@ -59,6 +68,7 @@ export const listOrdersInventory = async (
 
 	let expressionValues = {
 		":date": now.toISOString(),
+		...(d === "yesterday" && end ? { ":end": end.toISOString() } : {}),
 	};
 	let expressionNames = {};
 	let command;

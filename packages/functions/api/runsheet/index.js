@@ -156,7 +156,7 @@ export const getRunsheet = async (id) => {
 			[orderTable]: {
 				Keys: runsheet.orders.map((orderId) => ({ id: orderId })),
 				ProjectionExpression:
-					"totalPrice, paymentDetails, #s, tax, createdAt, #it, totalSavings, statusDetails, deliveryCharges, subTotal, deliverySlot",
+					"id, totalPrice, paymentDetails, #s, tax, createdAt, #it, totalSavings, statusDetails, deliveryCharges, subTotal, deliverySlot",
 				ExpressionAttributeNames: {
 					"#s": "status",
 					"#it": "items",
@@ -395,8 +395,8 @@ const commonRunsheetFunc = async (item) => {
 	const rider = await findById(usersTable, item.riderId);
 	const riderDetails = {
 		id: item.riderId,
-		name: rider.personalDetails.fullName,
-		number: rider.number,
+		name: rider?.personalDetails?.fullName || "",
+		number: rider?.number || "",
 	};
 	delete item.riderId;
 	return {
