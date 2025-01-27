@@ -295,7 +295,7 @@ export const updateItem = async (id, item) => {
 					TableName: productsTable,
 					Key: { id: id },
 					UpdateExpression:
-						"SET #nm = :name, #snm = :search_name, #desc = :description, #cat = :category, #subcat = :subCategory, #unt = :unit, #upd = :updatedAt",
+						"SET #nm = :name, #snm = :search_name, #desc = :description, #cat = :category, #subcat = :subCategory, #unt = :unit, #tags = :tags, #upd = :updatedAt",
 					ExpressionAttributeNames: {
 						"#nm": "name",
 						"#snm": "search_name",
@@ -303,6 +303,7 @@ export const updateItem = async (id, item) => {
 						"#cat": "category",
 						"#subcat": "subCategory",
 						"#unt": "unit",
+						"#tags": "tags",
 						"#upd": "updatedAt",
 					},
 					ExpressionAttributeValues: {
@@ -312,6 +313,7 @@ export const updateItem = async (id, item) => {
 						":category": item.category,
 						":subCategory": item.subCategory,
 						":unit": item.units,
+						":tags": item.tags ? item.tags.map(tag => tag.toLowerCase()) : [] || [],
 						":updatedAt": now,
 					},
 					ReturnValues: "ALL_NEW",
@@ -338,7 +340,9 @@ export const updateItem = async (id, item) => {
 	const result = await docClient.send(
 		new TransactWriteCommand(transactParams)
 	);
+	console.log(result)
 };
+
 
 export const updateItemStatus = async (req) => {
 	const active = req.filter((item) => item.active === true);

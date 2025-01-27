@@ -20,5 +20,9 @@
   },
   "workspaces": [
     "packages/*"
-  ]
+  ],
+  "dependencies": {
+    "jsonwebtoken": "^9.0.2",
+    "jwk-to-pem": "^2.0.7"
+  }
 }

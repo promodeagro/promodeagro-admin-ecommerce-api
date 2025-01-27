@@ -43,6 +43,8 @@ export const handler = middy(async (event) => {
 			deliverySlot: item.deliverySlot || {},
 			assignee: item?.assigned || undefined,
 			area: item.address.address,
+			cancellationData: item.cancellationData || {},
+
 		};
 	});
 	return {

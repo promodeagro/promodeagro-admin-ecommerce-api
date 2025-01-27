@@ -53,14 +53,13 @@ export const listOrdersInventory = async (
 		end.setDate(end.getDate() + 1);
 		dateQuery = `createdAt > :date AND createdAt < :end`;
 	}
-
 	const params = {
 		TableName: orderTable,
 		Limit: 50,
 		ExclusiveStartKey: nextKey
 			? {
-					id: nextKey,
-			  }
+				id: nextKey,
+			}
 			: undefined,
 		IndexName: nextKey ? undefined : "statusCreatedAtIndex",
 		ScanIndexForward: false,
@@ -189,6 +188,57 @@ export const cancelOrder = async (id, reason) => {
 		}),
 	};
 };
+
+export const reAttempt = async (id) => {
+	const order = await findById(orderTable, id);
+
+	console.log(order)
+	if (order.status !== "cancelled") {
+		return {
+			statusCode: 400,
+			body: JSON.stringify({ message: "order is not cancelled" }),
+		};
+	}
+	console.log(order.status)
+
+	const cancellationData = {
+		status: "order placed", // Change the status to "order placed"
+		cancelledAt: null,      // No cancellation time as the order is being placed again
+		cancelReason: null,     // No reason needed as it's not a cancellation anymore
+		cancellationBy: null,   // No cancellation by user
+	};
+
+	const input = {
+		TransactItems: [
+			{
+				Update: {
+					TableName: orderTable,
+					Key: { id },
+					UpdateExpression:
+						"SET #status = :status, #cancellationData = :cancellationData",
+					ExpressionAttributeNames: {
+						"#status": "status",
+						"#cancellationData": "cancellationData",
+					},
+					ExpressionAttributeValues: {
+						":status": "order placed",    // Setting status to "order placed"
+						":cancellationData": cancellationData,
+					},
+				},
+			},
+		],
+	};
+
+	const command = new TransactWriteCommand(input);
+	await docClient.send(command);
+	return {
+		statusCode: 200,
+		body: JSON.stringify({
+			message: "order status updated to 'order placed'",
+		}),
+	};
+};
+
 
 export const assignPacker = async (req) => {
 	const time = new Date().toISOString();

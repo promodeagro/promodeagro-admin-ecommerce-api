@@ -20,7 +20,8 @@ export const createNewUser = async (req) => {
 		username: req.email,
 		password: password,
 	};
-	await sendMail(mail);
+	return mail
+	// await sendMail(mail);
 };
 
 export const listUsers = async (active, role) => {

@@ -178,6 +178,7 @@ function calculateUnitPrices(units, price, savings, existingUnitPrices) {
 					? existingVariant.varient_id
 					: crypto.randomUUID(), // Use existing variant ID or generate a new one
 				qty: 1,
+				mrp: savings,
 				price: price,
 				savings: discountedSavings,
 				discountedPrice: discountedSavings,
@@ -205,6 +206,7 @@ function calculateUnitPrices(units, price, savings, existingUnitPrices) {
 				varient_id: crypto.randomUUID(), // Generate a new variant ID
 				qty: 1,
 				price: price,
+				mrp: savings,
 				savings: discountedSavings,
 				discountedPrice: discountedSavings,
 			});

@@ -31,6 +31,8 @@ export const handler = middy(async (event) => {
 			pincode,
 			nextKey
 		);
+
+		console.log(data)
 	}
 	const itemsArray = Array.isArray(data.items) ? data.items : [data.items];
 	const res = itemsArray.map((item) => {
@@ -47,6 +49,10 @@ export const handler = middy(async (event) => {
 			assignee: item?.assigned || undefined,
 			statusDetails: item?.statusDetails || {},
 			area: item.address.address,
+			cancellationData: item.cancellationData || {},
+			finalTotal: item.finalTotal,
+			deliveryCharges: item.deliveryCharges || 0
+
 		};
 	});
 	return {

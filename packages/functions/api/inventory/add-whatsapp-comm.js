@@ -147,5 +147,5 @@ async function fetchProducts(event) {
 
 // Event handler for product price updates
 export const handler = EventHandler(Events.PriceUpdate, async (evt) => {
-	await fetchProducts(evt);
+	// await fetchProducts(evt);
 });

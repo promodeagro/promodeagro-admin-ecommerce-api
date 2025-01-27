@@ -1,4 +1,6 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import crypto from "crypto";
+
 import {
 	DynamoDBDocumentClient,
 	GetCommand,
@@ -139,3 +141,4 @@ export const searchPincodes = async (query) => {
 const slotId = () => {
 	return crypto.randomUUID().split("-")[0];
 };
+	

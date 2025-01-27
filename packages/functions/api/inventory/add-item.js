@@ -83,7 +83,9 @@ export const handler = middy(async (event) => {
 		availability: false,
 		image: req.images[0],
 		images: req.images || [],
+		tags: req.tags ? req.tags.map(tag => tag.toLowerCase()) : [] || [],
 	};
+	console.log(productItem)
 	const inventoryItem = {
 		id: itemCode,
 		productId: uuid,

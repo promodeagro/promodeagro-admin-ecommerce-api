@@ -18,10 +18,12 @@ const createAdminSchema = z.object({
 
 export const createNewUserHandler = middy(async (event) => {
 	const req = JSON.parse(event.body);
-	await createNewUser(req);
+	const user = await createNewUser(req);
+	console.log(user)
 	return {
 		statusCode: 200,
 		body: JSON.stringify({
+			user:user,
 			message: "user created successfully",
 		}),
 	};

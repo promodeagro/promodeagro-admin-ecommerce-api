@@ -17,12 +17,14 @@ export const handler = async (event) => {
 		confirmedOrderCount,
 		cancelledOrderCount,
 		refundedOrderCount,
+		requestForCancellationOrderCount, // New stat for 'Request for Cancellation'
 	] = await Promise.all([
 		totalOrders(),
 		orderStatsByStatus("delivered").catch(() => fallbackValue),
 		orderStatsByStatus("order placed").catch(() => fallbackValue),
 		orderStatsByStatus("cancelled").catch(() => fallbackValue),
 		orderStatsByStatus("refunded").catch(() => fallbackValue),
+		orderStatsByStatus("Request for Cancellation").catch(() => fallbackValue), // Fetch stats for 'Request for Cancellation'
 	]);
 	return {
 		statusCode: 200,
@@ -32,6 +34,7 @@ export const handler = async (event) => {
 			confirmedOrderCount: confirmedOrderCount,
 			cancelledOrderCount: cancelledOrderCount,
 			refundedOrderCount: refundedOrderCount,
+			requestForCancellationOrderCount: requestForCancellationOrderCount, // Include the new stat in the response
 		}),
 	};
 };

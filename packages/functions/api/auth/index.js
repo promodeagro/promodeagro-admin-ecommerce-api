@@ -51,6 +51,7 @@ export const signup = async ({ email, name, role, password }) => {
 		Password: password,
 		Permanent: true,
 	};
+	console.log(adminCreateUserParams)
 	await cognitoClient.send(
 		new AdminSetUserPasswordCommand(adminSetUserPasswordParams)
 	);

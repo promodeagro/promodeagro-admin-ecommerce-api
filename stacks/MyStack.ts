@@ -266,7 +266,8 @@ export function API({ app, stack }: StackContext) {
 			}
 		} : undefined,
 		defaults: {
-			authorizer: isProd ? "myAuthorizer" : "none",
+			// authorizer: isProd ? "myAuthorizer" : "none",
+			authorizer: "none",
 			function: {
 				bind: [inventoryTable,
 					inventoryModificationTable,
@@ -376,6 +377,7 @@ export function API({ app, stack }: StackContext) {
 			"GET /order-inventory": "packages/functions/api/order/get-orders-inventory.handler",
 			"GET /order/{id}": "packages/functions/api/order/get-order.handler",
 			"PUT /order/{id}/cancel": "packages/functions/api/order/cancel-order.handler",
+			"PUT /order/{id}/reattempt": "packages/functions/api/order/reattempt-order.handler",
 			"GET /order/stats": "packages/functions/api/order/order-stats.handler",
 			"PUT /order/proceed": "packages/functions/api/order/proceed-order.handler",
 			"PUT /order/pack": "packages/functions/api/order/assign-packer.handler",

@@ -39,8 +39,10 @@ export const handler = middy(async (event) => {
 		deliveryCharges: parseInt(orderData.deliveryCharges).toFixed(2),
 		subTotal: parseInt(orderData.subTotal).toFixed(2),
 		createdAt: orderData.createdAt,
+		cancellationData: orderData.cancellationData,
 		assignedTo: orderData.assigned || undefined,
 		totalPrice: parseInt(orderData.totalPrice).toFixed(2),
+		finalTotal: orderData.finalTotal
 	};
 	return {
 		statusCode: 200,
