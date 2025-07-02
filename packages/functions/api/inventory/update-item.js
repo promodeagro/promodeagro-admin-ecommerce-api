@@ -43,11 +43,39 @@ export const handler = middy(async (event) => {
 			body: JSON.stringify({ message: "product id missing" }),
 		};
 	}
-	await updateItem(id, req);
+	const updateData = {
+		name: req.name,
+		description: req.description,
+		category: req.category,
+		subCategory: req.subCategory,
+		units: req.units.toLowerCase(),
+		// expiry: req.EXPIRY ? new Date(req.EXPIRY).toISOString() : undefined,
+		availability: req.availability,
+		sellingPrice: req.sellingPrice,
+		// discount: req.DISCOUNT,
+		purchasingPrice: req.purchasingPrice,
+		stockQuantity: req.stockQuantity,
+		stockQuantityAlert: req.stockQuantityAlert,
+		comparePrice: req.comparePrice,
+		isVariant: req.isVariant,
+		minimumSellingWeight: req.minimumSellingWeight,
+		minimumSellingWeightUnit: req.MinimumSellingWeightUnit,
+		maximumSellingWeight: req.maximumSellingWeight,
+		maximumSellingWeightUnit: req.MaximumSellingWeightUnit,
+		buyerLimit: req.buyerLimit,
+		tags: req.tags || [],
+		// searchName: req.SEARCH_NAME,
+		totalQuantityInB2C: req.totalQuantityInB2c,
+		totalquantityB2cUnit: req.TotalquantityB2cUnit,
+		images: req.images  || [],
+		image: req.image,
+		// createdAt: req.CREATEDAT ? new Date(req.CREATEDAT).toISOString() : undefined,
+		updatedAt: new Date().toISOString(),
+	};
+	await updateItem(id, updateData);
 	return {
 		statusCode: 200,
 		body: JSON.stringify({ message: "Item updated successfully" }),
 	};
 })
-	.use(bodyValidator(updateItemSchema))
 	.use(errorHandler());

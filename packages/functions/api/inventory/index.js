@@ -19,50 +19,79 @@ const docClient = DynamoDBDocumentClient.from(client);
 const productsTable = Table.productsTable.tableName;
 const inventoryTable = Table.inventoryTable.tableName;
 
+// export async function list(nextKey) {
+// 	const params = {
+// 		TableName: productsTable,
+// 		Limit: 50,
+// 		ExclusiveStartKey: nextKey
+// 			? {
+// 					id: nextKey,
+// 			  }
+// 			: undefined,
+// 	};
+// 	const command = new ScanCommand(params);
+// 	const data = await docClient.send(command);
+// 	if (data.LastEvaluatedKey) {
+// 		nextKey = data.LastEvaluatedKey.id;
+// 	} else {
+// 		nextKey = undefined;
+// 	}
+// 	const res = await Promise.all(
+// 		data.Items.map(async (item) => {
+// 			const inventoryData = await inventoryByProdId(item.id);
+// 			const itemCode = inventoryData.id;
+// 			delete inventoryData.id;
+// 			return {
+// 				...item,
+// 				...inventoryData,
+// 				units: item.unit,
+// 				active: item.availability,
+// 				itemCode: itemCode,
+// 				productId: undefined,
+// 				unit: undefined,
+// 				availability: undefined,
+// 			};
+// 		})
+// 	);
+// 	return {
+// 		count: data.Count,
+// 		items: res,
+// 		nextKey: nextKey,
+// 	};
+// }
+
 export async function list(nextKey) {
-	const params = {
-		TableName: productsTable,
-		Limit: 50,
-		ExclusiveStartKey: nextKey
-			? {
-					id: nextKey,
-			  }
-			: undefined,
-	};
-	const command = new ScanCommand(params);
-	const data = await docClient.send(command);
-	if (data.LastEvaluatedKey) {
-		nextKey = data.LastEvaluatedKey.id;
-	} else {
-		nextKey = undefined;
-	}
-	const res = await Promise.all(
-		data.Items.map(async (item) => {
-			const inventoryData = await inventoryByProdId(item.id);
-			const itemCode = inventoryData.id;
-			delete inventoryData.id;
-			return {
-				...item,
-				...inventoryData,
-				units: item.unit,
-				active: item.availability,
-				itemCode: itemCode,
-				productId: undefined,
-				unit: undefined,
-				availability: undefined,
-			};
-		})
-	);
-	return {
-		count: data.Count,
-		items: res,
-		nextKey: nextKey,
-	};
+  const params = {
+    TableName: Table.productsTable.tableName,
+    Limit: 50,
+    ExclusiveStartKey: nextKey ? { id: nextKey } : undefined,
+  };
+
+  const command = new ScanCommand(params);
+  const data = await docClient.send(command);
+
+  // Map product items to the expected format
+  const products = data.Items.map((item) => ({
+    ...item,
+    units: item.unit || null,
+    active: item.availability || false,
+    itemCode: item.id, // Assuming the `id` is equivalent to the item code
+    productId: undefined,
+    unit: undefined,
+    availability: undefined,
+  }));
+
+  return {
+    count: data.Count,
+    items: products,
+    nextKey: data.LastEvaluatedKey?.id,
+  };
 }
+
 
 async function inventoryByProdId(productId) {
 	const InventoryParams = {
-		TableName: Table.inventoryTable.tableName,
+		TableName: Table.productsTable.tableName,
 		IndexName: "productIdIndex",
 		KeyConditionExpression: "productId = :productId",
 		ExpressionAttributeValues: {
@@ -108,18 +137,18 @@ export async function get(id) {
 	};
 	const productRes = await docClient.send(new GetCommand(params));
 	const product = productRes.Item;
-	const inventory = await inventoryByProdId(product.id);
-	const itemCode = inventory.id;
-	delete inventory.id;
+	// const inventory = await inventoryByProdId(product.id);
+	// const itemCode = inventory.id;
+	// delete inventory.id;
 	return {
 		...product,
-		...inventory,
-		units: product.unit,
-		active: product.availability,
-		itemCode: itemCode,
-		productId: undefined,
-		unit: undefined,
-		availability: undefined,
+		// ...inventory,
+		// units: product.unit,
+		// active: product.availability,
+		// itemCode: itemCode,
+		// productId: undefined,
+		// unit: undefined,
+		// availability: undefined,
 	};
 }
 
@@ -139,18 +168,18 @@ export const searchByName = async (query) => {
 	const data = await docClient.send(command);
 	const res = await Promise.all(
 		data.Items.map(async (item) => {
-			const inventoryData = await inventoryByProdId(item.id);
-			const itemCode = inventoryData.id;
-			delete inventoryData.id;
+			// const inventoryData = await inventoryByProdId(item.id);
+			// const itemCode = inventoryData.id;
+			// delete inventoryData.id;
 			return {
 				...item,
-				...inventoryData,
-				units: item.unit,
-				active: item.availability,
-				itemCode: itemCode,
-				productId: undefined,
-				unit: undefined,
-				availability: undefined,
+				// ...inventoryData,
+				// units: item.unit,
+				// active: item.availability,
+				// itemCode: itemCode,
+				// productId: undefined,
+				// unit: undefined,
+				// availability: undefined,
 			};
 		})
 	);
@@ -256,18 +285,18 @@ export const inventoryByCategory = async (
 async function productInventoryData(data) {
 	return await Promise.all(
 		data.Items.map(async (item) => {
-			const inventoryData = await inventoryByProdId(item.id);
-			const itemCode = inventoryData.id;
-			delete inventoryData.id;
+			// const inventoryData = await inventoryByProdId(item.id);
+			// const itemCode = inventoryData.id;
+			// delete inventoryData.id;
 			return {
 				...item,
-				...inventoryData,
-				units: item.unit,
-				active: item.availability,
-				itemCode: itemCode,
-				productId: undefined,
-				unit: undefined,
-				availability: undefined,
+				// ...inventoryData,
+				// units: item.unit,
+				// active: item.availability,
+				// itemCode: itemCode,
+				// productId: undefined,
+				// unit: undefined,
+				// availability: undefined,
 			};
 		})
 	);
@@ -286,81 +315,108 @@ export async function deleteItemById(tableName, id) {
 }
 
 export const updateItem = async (id, item) => {
-	const product = await findById(productsTable, id);
 	const now = new Date().toISOString(); // Current timestamp in ISO format
+  
+	// Ensure images array is handled correctly
+	const images = item.images || [];
+	const mainImage = images.length > 0 ? images[0] : null;
+  
 	const transactParams = {
-		TransactItems: [
-			{
-				Update: {
-					TableName: productsTable,
-					Key: { id: id },
-					UpdateExpression:
-						"SET #nm = :name, #snm = :search_name, #desc = :description, #cat = :category, #subcat = :subCategory, #unt = :unit, #tags = :tags, #upd = :updatedAt",
-					ExpressionAttributeNames: {
-						"#nm": "name",
-						"#snm": "search_name",
-						"#desc": "description",
-						"#cat": "category",
-						"#subcat": "subCategory",
-						"#unt": "unit",
-						"#tags": "tags",
-						"#upd": "updatedAt",
-					},
-					ExpressionAttributeValues: {
-						":name": item.name,
-						":search_name": item.name.toLowerCase(),
-						":description": item.description,
-						":category": item.category,
-						":subCategory": item.subCategory,
-						":unit": item.units,
-						":tags": item.tags ? item.tags.map(tag => tag.toLowerCase()) : [] || [],
-						":updatedAt": now,
-					},
-					ReturnValues: "ALL_NEW",
-				},
+	  TransactItems: [
+		{
+		  Update: {
+			TableName: productsTable,
+			Key: { id: id },
+			UpdateExpression:
+			  "SET #nm = :name, #snm = :search_name, #desc = :description, #cat = :category, " +
+			  "#subcat = :subCategory, #unt = :units, #tags = :tags, #exp = :expiry, #upd = :updatedAt, " +
+			  "#avail = :availability, #minSellWt = :minimumSellingWeight, #maxSellWt = :maximumSellingWeight, " +
+			  "#maxSellWtUnit = :MaximumSellingWeightUnit, #minSellWtUnit = :MinimumSellingWeightUnit, " +
+			  "#totalB2c = :totalQuantityInB2c, #totalB2cUnit = :totalquantityB2cUnit, " +
+			  "#stockQty = :stockQuantity, #buyerLimit = :buyerLimit, #stockQtyAlert = :stockQuantityAlert, " +
+			  "#pPrice = :purchasingPrice, #sPrice = :sellingPrice, #cPrice = :comparePrice, " +
+			  "#img = :image, #imgs = :images",
+			ExpressionAttributeNames: {
+			  "#nm": "name",
+			  "#snm": "search_name",
+			  "#desc": "description",
+			  "#cat": "category",
+			  "#subcat": "subCategory",
+			  "#unt": "units",
+			  "#tags": "tags",
+			  "#exp": "expiry",
+			  "#upd": "updatedAt",
+			  "#avail": "availability",
+			  "#minSellWt": "minimumSellingWeight",
+			  "#maxSellWt": "maximumSellingWeight",
+			  "#maxSellWtUnit": "MaximumSellingWeightUnit",
+			  "#minSellWtUnit": "MinimumSellingWeightUnit",
+			  "#totalB2c": "totalQuantityInB2c",
+			  "#totalB2cUnit": "totalquantityB2cUnit",
+			  "#stockQty": "stockQuantity",
+			  "#buyerLimit": "buyerLimit",
+			  "#stockQtyAlert": "stockQuantityAlert",
+			  "#pPrice": "purchasingPrice",
+			  "#sPrice": "sellingPrice",
+			  "#cPrice": "comparePrice",
+			  "#img": "image",
+			  "#imgs": "images",
 			},
-			{
-				Update: {
-					TableName: Table.inventoryTable.tableName,
-					Key: { id: product.itemCode },
-					UpdateExpression: "SET #exp = :expiry, #upd = :updatedAt",
-					ExpressionAttributeNames: {
-						"#exp": "expiry",
-						"#upd": "updatedAt",
-					},
-					ExpressionAttributeValues: {
-						":expiry": item.expiry || null,
-						":updatedAt": now,
-					},
-					ReturnValues: "ALL_NEW",
-				},
+			ExpressionAttributeValues: {
+			  ":name": item.name,
+			  ":search_name": item.name.toLowerCase(),
+			  ":description": item.description,
+			  ":category": item.category,
+			  ":subCategory": item.subCategory,
+			  ":units": item.units,
+			  ":tags": item.tags ? item.tags.map(tag => tag.toLowerCase()) : [],
+			  ":expiry": item.expiry || null,
+			  ":updatedAt": now,
+			  ":availability": item.availability,
+			  ":minimumSellingWeight": item.minimumSellingWeight,
+			  ":maximumSellingWeight": item.maximumSellingWeight,
+			  ":MaximumSellingWeightUnit": item.maximumSellingWeightUnit,
+			  ":MinimumSellingWeightUnit": item.minimumSellingWeightUnit,
+			  ":totalQuantityInB2c": item.totalQuantityInB2C,
+			  ":totalquantityB2cUnit": item.totalquantityB2cUnit,
+			  ":stockQuantity": item.stockQuantity,
+			  ":buyerLimit": item.buyerLimit,
+			  ":stockQuantityAlert": item.stockQuantityAlert,
+			  ":purchasingPrice": item.purchasingPrice,
+			  ":sellingPrice": item.sellingPrice,
+			  ":comparePrice": item.comparePrice,
+			  ":image": mainImage,
+			  ":images": images,
 			},
-		],
+			ReturnValues: "ALL_NEW",
+		  },
+		},
+	  ],
 	};
-	const result = await docClient.send(
-		new TransactWriteCommand(transactParams)
-	);
-	console.log(result)
-};
-
+  
+	const result = await docClient.send(new TransactWriteCommand(transactParams));
+	console.log(result);
+  };
+  
+  
 
 export const updateItemStatus = async (req) => {
 	const active = req.filter((item) => item.active === true);
-	if (active.length !== 0) {
-		const invenItems = await Promise.all(
-			active.map((item) => inventoryByProdId(item.id))
-		);
-		for (const item of invenItems) {
-			if (!item.onlineStorePrice || !item.compareAt) {
-				return {
-					statusCode: 400,
-					body: JSON.stringify({
-						message: "add product prices before activating them",
-					}),
-				};
-			}
-		}
-	}
+	// if (active.length !== 0) {
+	// 	const invenItems = await Promise.all(
+	// 		active.map((item) => inventoryByProdId(item.id))
+	// 	);
+	// 	// for (const item of invenItems) {
+	// 	// 	if (!item.onlineStorePrice || !item.compareAt) {
+	// 	// 		return {
+	// 	// 			statusCode: 400,
+	// 	// 			body: JSON.stringify({
+	// 	// 				message: "add product prices before activating them",
+	// 	// 			}),
+	// 	// 		};
+	// 	// 	}
+	// 	// }
+	// }
 
 	const writeParams = {
 		TransactItems: req.map((item) => ({

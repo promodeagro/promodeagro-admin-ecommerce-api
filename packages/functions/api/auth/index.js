@@ -25,6 +25,7 @@ const usersTable = Table.promodeagroUsers.tableName;
 
 export const signup = async ({ email, name, role, password }) => {
 	const item = await emailExits(email);
+	console.log(item)
 	if (item && item.length > 0) {
 		return {
 			statusCode: 400,

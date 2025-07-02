@@ -14,12 +14,13 @@ export const Events = {
 			z
 				.object({
 					id: z.string(),
-					compareAt: z.number().positive(),
-					onlineStorePrice: z.number().positive(),
+
+					purchasingPrice: z.number().positive(),
+
+					sellingPrice: z.number().positive(),
 				})
-				.refine((ob) => ob.compareAt > ob.onlineStorePrice, {
-					message: "compareAt must be greater than onlineStorePrice",
-				})
+
+
 		)
 	),
 };

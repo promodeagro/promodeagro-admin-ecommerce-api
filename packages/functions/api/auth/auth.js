@@ -42,7 +42,7 @@ export const signinHandler = middy(async (event) => {
 	.use(errorHandler());
 
 const signupSchema = z.object({
-	email: emailSchema,
+	// email: emailSchema,
 	password: passwordSchema,
 	role: z.enum(["admin"]),
 	name: z.string(),
@@ -53,7 +53,7 @@ export const signupHandler = middy(async (event) => {
 	return await signup(req);
 })
 	.use(bodyValidator(signupSchema))
-	.use(errorHandler());
+	// .use(errorHandler());
 
 const forgotPassSchema = z.object({
 	email: emailSchema,

@@ -14,8 +14,7 @@ export const handler = middy(async (event) => {
 	}
 	const product = await findById(Table.productsTable.tableName, id);
 	await Promise.all([
-		deleteItemById(Table.productsTable.tableName, id),
-		deleteItemById(Table.inventoryTable.tableName, product.itemCode),
+		deleteItemById(Table.productsTable.tableName, product.id),
 	]);
 	return {
 		statusCode: 200,

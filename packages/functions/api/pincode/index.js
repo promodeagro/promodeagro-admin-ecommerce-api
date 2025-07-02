@@ -90,32 +90,73 @@ export const changeDeliveryType = async ({ type, pincodes }) => {
 	await docClient.send(new TransactWriteCommand(batchUpdateParams));
 	return await list();
 };
-
 export const list = async (status, type) => {
-	if (status || type) {
-		status = status === "false" ? false : true;
-		type = type === "next day" ? "next day" : "same day";
-		const params = {
-			TableName: pincodeTable,
-			FilterExpression: "#s = :active AND #t = :deliveryType",
-			ExpressionAttributeNames: {
-				"#s": "active",
-				"#t": "deliveryType",
-			},
-			ExpressionAttributeValues: {
-				":active": Boolean(status),
-				":deliveryType": type,
-			},
-		};
-		const data = await docClient.send(new ScanCommand(params));
-		return {
-			count: data.Count,
-			items: data.Items,
-			nextKey: data.nextKey,
-		};
+	status = status === "false" ? false : true;
+
+	// Prepare the base parameters for DynamoDB Scan
+	const params = {
+		TableName: pincodeTable,
+		FilterExpression: "#s = :active",
+		ExpressionAttributeNames: {
+			"#s": "active"
+		},
+		ExpressionAttributeValues: {
+			":active": Boolean(status)
+		}
+	};
+
+	// Handle Single or List Type Filter
+	// Handle Single or List Type Filter
+	if (type) {
+		if (Array.isArray(type)) {
+			params.FilterExpression += " AND (" + type.map((_, i) => `contains(#t, :type${i})`).join(" OR ") + ")";
+			params.ExpressionAttributeNames["#t"] = "deliveryTypes";
+			type.forEach((t, i) => {
+				params.ExpressionAttributeValues[`:type${i}`] = t;
+			});
+		} else {
+			params.FilterExpression += " AND contains(#t, :deliveryType)";
+			params.ExpressionAttributeNames["#t"] = "deliveryTypes";
+			params.ExpressionAttributeValues[":deliveryType"] = type;
+		}
 	}
-	return await findAll(pincodeTable);
+
+
+	// Execute DynamoDB Query
+
+	console.log(params)
+	const data = await docClient.send(new ScanCommand(params));
+	return {
+		count: data.Count,
+		items: data.Items,
+		nextKey: data.nextKey
+	};
 };
+// export const list = async (status, type) => {
+// 	if (status || type) {
+// 		status = status === "false" ? false : true;
+// 		type = type === "next day" ? "next day" : "same day";
+// 		const params = {
+// 			TableName: pincodeTable,
+// 			FilterExpression: "#s = :active AND #t = :deliveryType",
+// 			ExpressionAttributeNames: {
+// 				"#s": "active",
+// 				"#t": "deliveryType",
+// 			},
+// 			ExpressionAttributeValues: {
+// 				":active": Boolean(status),
+// 				":deliveryType": type,
+// 			},
+// 		};
+// 		const data = await docClient.send(new ScanCommand(params));
+// 		return {
+// 			count: data.Count,
+// 			items: data.Items,
+// 			nextKey: data.nextKey,
+// 		};
+// 	}
+// 	return await findAll(pincodeTable);
+// };
 
 export const searchPincodes = async (query) => {
 	const params = {
@@ -141,4 +182,3 @@ export const searchPincodes = async (query) => {
 const slotId = () => {
 	return crypto.randomUUID().split("-")[0];
 };
-	

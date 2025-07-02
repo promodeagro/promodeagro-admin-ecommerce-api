@@ -290,6 +290,7 @@ export function API({ app, stack }: StackContext) {
 						USER_POOL_ID: cognito1.userPoolId,
 						COGNITO_CLIENT: cognito1.userPoolClientId,
 					},
+					
 					permissions: [
 						"cognito-idp:AdminCreateUser",
 						"cognito-idp:AdminConfirmSignUp",
@@ -350,13 +351,17 @@ export function API({ app, stack }: StackContext) {
 				},
 			},
 			"GET /inventory": "packages/functions/api/inventory/get-items.handler",
+			"GET /inventory/all": "packages/functions/api/inventory/get-allItems.handler",
+			"GET /inventory/collection": "packages/functions/api/inventory/get-collection-item.handler",
 			"GET /inventory/{id}": "packages/functions/api/inventory/get-item.handler",
 			"GET /inventory/stats": "packages/functions/api/inventory/inventory-stats.handler",
 			"POST /inventory": "packages/functions/api/inventory/add-item.handler",
+			"POST /inventory/import": "packages/functions/api/inventory/import-items.handler",
 			"PUT /inventory/status": "packages/functions/api/inventory/update-item-status.handler",
 			"PUT /inventory/price": "packages/functions/api/inventory/update-item-price.handler",
 			"POST /inventory/adjust": "packages/functions/api/inventory/inventory-mod.add",
 			"GET /inventory/adjust": "packages/functions/api/inventory/inventory-mod.list",
+			"GET /inventory/exportProducts": "packages/functions/api/inventory/export-items.handler",
 			"DELETE /inventory/{id}": "packages/functions/api/inventory/delete-item.handler",
 			"PUT /inventory/{id}": "packages/functions/api/inventory/update-item.handler",
 			"GET /uploadUrl": {
@@ -377,7 +382,23 @@ export function API({ app, stack }: StackContext) {
 			"GET /order-inventory": "packages/functions/api/order/get-orders-inventory.handler",
 			"GET /order/{id}": "packages/functions/api/order/get-order.handler",
 			"PUT /order/{id}/cancel": "packages/functions/api/order/cancel-order.handler",
+			"PUT /order/payment-status": "packages/functions/api/order/update-order-payment-status.handler",
+			"PUT /order/updateOrder/{id}": {
+				function: {
+					handler:
+						"packages/functions/api/order/update-order.handler",
+					bind: [inventoryTable,
+						inventoryModificationTable,
+						productsTable,
+						OrdersTable, runsheetTable,
+						notificationsTable,],
+				},
+			},
+				
 			"PUT /order/{id}/reattempt": "packages/functions/api/order/reattempt-order.handler",
+																								
+
+
 			"GET /order/stats": "packages/functions/api/order/order-stats.handler",
 			"PUT /order/proceed": "packages/functions/api/order/proceed-order.handler",
 			"PUT /order/pack": "packages/functions/api/order/assign-packer.handler",

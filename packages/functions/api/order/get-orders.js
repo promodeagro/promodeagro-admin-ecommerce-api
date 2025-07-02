@@ -42,8 +42,9 @@ export const handler = middy(async (event) => {
 			totalAmount: item.totalPrice,
 			deliverySlot: item.deliverySlot || {},
 			assignee: item?.assigned || undefined,
-			area: item.address.address,
+			address: item.address,
 			cancellationData: item.cancellationData || {},
+			removedItems: item.removedItems || []
 
 		};
 	});
@@ -62,14 +63,15 @@ export async function checkQuery(query) {
 	if (con) {
 		return await findById(Table.OrdersTable.tableName, query);
 	} else {
+		const lowercaseQuery = query.trim().toLowerCase();
 		const params = {
 			TableName: Table.OrdersTable.tableName,
-			FilterExpression: "contains(#customerName, :query)",
+			FilterExpression: "contains(#customerNameLower, :query)",
 			ExpressionAttributeNames: {
-				"#customerName": "customerName",
+				"#customerNameLower": "customerNameLower",
 			},
 			ExpressionAttributeValues: {
-				":query": query.trim(),
+				":query": lowercaseQuery,
 			},
 		};
 		console.log(params);

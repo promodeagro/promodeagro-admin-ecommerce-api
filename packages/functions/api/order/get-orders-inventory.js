@@ -48,10 +48,11 @@ export const handler = middy(async (event) => {
 			deliverySlot: item.deliverySlot || {},
 			assignee: item?.assigned || undefined,
 			statusDetails: item?.statusDetails || {},
-			area: item.address.address,
+			address:item.address,
 			cancellationData: item.cancellationData || {},
 			finalTotal: item.finalTotal,
-			deliveryCharges: item.deliveryCharges || 0
+			deliveryCharges: item.deliveryCharges || 0,
+			removedItems: item.removedItems || []
 
 		};
 	});

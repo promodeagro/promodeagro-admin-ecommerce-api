@@ -1,3 +1,133 @@
+// import z from "zod";
+// import middy from "@middy/core";
+// import { bodyValidator } from "../util/bodyValidator";
+// import { errorHandler } from "../util/errorHandler";
+// import { createPincode, updatePincode, list, searchPincodes } from ".";
+// import crypto from "crypto";
+
+// // Helper function to format time into a 24-hour format
+// const formatTime24Hour = (time) => {
+//   let hours, minutes;
+
+//   if (time instanceof Date) {
+//     hours = time.getHours();
+//     minutes = time.getMinutes();
+//   } else if (typeof time === "string" && /^\d{1,2}:\d{2}$/.test(time)) {
+//     [hours, minutes] = time.split(":").map(Number);
+//   } else {
+//     throw new Error("Invalid time format. Must be a Date object or 'HH:MM' string.");
+//   }
+
+//   // Ensure it's in 24-hour format
+//   hours = hours % 24; // Adjusting in case of invalid hour inputs
+//   minutes = minutes.toString().padStart(2, "0");
+
+//   return `${hours}:${minutes}`;
+// };
+
+// // Generate slots for every day in the year (366 days in a leap year, 365 in a regular year)
+// const generateYearlySlots = (shifts, year) => {
+//   const slots = [];
+
+//   // Loop through all shifts
+//   shifts.forEach((shift) => {
+//     const shiftSlots = shift.slots.map((slot) => {
+//       // For each shift slot, generate slots for every day of the given year
+//       const shiftSlotsForYear = [];
+//       for (let day = 1; day <= (isLeapYear(year) ? 366 : 365); day++) {
+//         const date = new Date(year, 0, day);
+//         const dateString = date.toISOString().split("T")[0]; // Convert to YYYY-MM-DD format
+//         const newSlot = {
+//           ...slot,
+//           id: crypto.randomUUID(),
+//           date: dateString,
+//           start: formatTime24Hour(slot.start || "12:00"),
+//           end: formatTime24Hour(slot.end || "12:00"),
+//           active: true,
+//         };
+//         shiftSlotsForYear.push(newSlot);
+//       }
+//       return {
+//         name: shift.name,
+//         slots: shiftSlotsForYear,
+//       };
+//     });
+//     slots.push(...shiftSlots);
+//   });
+
+//   return slots;
+// };
+
+// // Check if a year is a leap year
+// const isLeapYear = (year) => {
+//   return (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+// };
+
+// // Zod schema for validating pincode creation and updates
+// const pincodeSchema = z.object({
+//   pincode: z.string().nonempty("Pincode is required"),
+//   deliveryType: z.enum(["same day", "next day", "scheduled"]),
+//   active: z.boolean().default(true),
+//   dateAdded: z.string().default(new Date().toISOString().split("T")[0]),
+//   shifts: z.array(
+//     z.object({
+//       name: z.string().nonempty("Shift name is required"),
+//       slots: z.array(
+//         z.object({
+//           start: z.string().default("12:00"),
+//           end: z.string().default("12:00"),
+//           id: z.string().optional(),
+//           date: z.string().optional(),
+//           active: z.boolean().default(true),
+//         })
+//       ),
+//     })
+//   ),
+// });
+
+// // Handler for creating a new pincode
+// export const createPincodeHandler = middy(async (event) => {
+//   const req = JSON.parse(event.body);
+
+//   // Generate all yearly slots for the given shifts and year (2025)
+//   const year = 2025; // You can dynamically pass the year here if needed
+//   req.shifts = generateYearlySlots(req.shifts, year);
+
+//   // Validate the schema after processing
+//   pincodeSchema.parse(req);
+
+//   // Create pincode in the database
+//   return await createPincode(req);
+// })
+//   .use(bodyValidator(pincodeSchema))
+//   .use(errorHandler());
+
+// // Handler for updating an existing pincode
+// export const updatePincodeHandler = middy(async (event) => {
+//   const req = JSON.parse(event.body);
+
+//   // Generate all yearly slots for the given shifts and year (2025)
+//   const year = 2025; // You can dynamically pass the year here if needed
+//   req.shifts = generateYearlySlots(req.shifts, year);
+
+//   // Validate the schema after processing
+//   pincodeSchema.parse(req);
+
+//   // Update pincode in the database
+//   return await updatePincode(req);
+// })
+//   .use(bodyValidator(pincodeSchema))
+//   .use(errorHandler());
+
+// // Handler for listing pincodes with optional filters
+// export const listhandler = middy(async (event) => {
+//   const { search, status, type } = event.queryStringParameters || {};
+//   if (search) {
+//     return await searchPincodes(search);
+//   }
+//   return await list(status, type);
+// }).use(errorHandler());
+
 import z from "zod";
 import middy from "@middy/core";
 import { bodyValidator } from "../util/bodyValidator";
@@ -20,61 +150,50 @@ const getCurrentDate = () => {
 	return now.toISOString().split("T")[0]; // YYYY-MM-DD format
 };
 
-// Formats a date object or time string to 12-hour time (e.g., 03:00 PM)
 const formatTime12Hour = (time) => {
 	let hours, minutes;
 
-	// Check if input is a date object or time string (e.g., "15:00")
 	if (time instanceof Date) {
 		hours = time.getHours();
 		minutes = time.getMinutes();
 	} else if (typeof time === "string" && /^\d{1,2}:\d{2}$/.test(time)) {
-		[hours, minutes] = time.split(":").map(Number);
+		[hours, minutes] = time.split(":" ).map(Number);
 	} else {
 		throw new Error("Invalid time format. Must be a Date object or 'HH:MM' string.");
 	}
 
 	const ampm = hours >= 12 ? "PM" : "AM";
-	hours = hours % 12 || 12; // Convert 24-hour to 12-hour format, '0' becomes '12'
+	hours = hours % 12 || 12;
 	minutes = minutes.toString().padStart(2, "0");
 
-	return `${hours}:${minutes} ${ampm}`;
+	return `${hours}:${minutes}`;
 };
 
-// Determines AM or PM based on the shift name (e.g., "Morning", "Afternoon")
-const getAMPM = (shiftName) => {
-	const lowerShift = shiftName.toLowerCase();
-	if (lowerShift.includes("morning")) return "AM";
-	if (lowerShift.includes("afternoon") || lowerShift.includes("evening")) return "PM";
-	return "AM"; // Default to AM if no match
-};
-
-// Helper function to handle slot processing and AM/PM logic
 const processShifts = (shifts) => {
+
+	shifts.map((shift) => {
+		console.log(shift)
+	})
 	return shifts.map((shift) => ({
 		...shift,
 		name: shift.name.toLowerCase(),
 		slots: shift.slots.map((slot) => {
-			// If slot ID is missing, generate a new ID (for new slots)
 			if (!slot.id) {
 				slot.id = crypto.randomUUID();
 			}
-
-			// Parse and format start/end times properly
-			slot.start = formatTime12Hour(slot.start || "00:00"); // Default to midnight if not provided
+			slot.start = formatTime12Hour(slot.start || "00:00");
 			slot.end = formatTime12Hour(slot.end || "00:00");
-			slot.startAmPm = slot.start.split(" ")[1]; // Extract AM/PM
-			slot.endAmPm = slot.end.split(" ")[1]; // Extract AM/PM
-
+			slot.startAmPm = slot.startAmPm;
+			slot.endAmPm = slot.endAmPm;
 			return slot;
 		}),
 	}));
 };
 
-// Zod schema for validating pincode creation and updates
+// Updated schema to support multiple delivery types
 const pincodeSchema = z.object({
 	pincode: z.string(),
-	deliveryType: z.enum(deliveryTypes),
+	deliveryTypes: z.array(z.enum(deliveryTypes)), // Accept an array of delivery types
 	active: z.boolean().default(true),
 	dateAdded: z.string().default(getCurrentDate),
 	shifts: z.array(
@@ -86,18 +205,15 @@ const pincodeSchema = z.object({
 					end: z.string().default(formatTime12Hour("00:00")),
 					startAmPm: z.string().optional().default("AM"),
 					endAmPm: z.string().optional().default("PM"),
-					id: z.string().optional(), // slotId is optional for new slots
+					id: z.string().optional(),
 				})
 			),
 		})
 	),
 });
 
-// Handler for creating a new pincode
 export const createPincodeHandler = middy(async (event) => {
 	const req = JSON.parse(event.body);
-
-	// Pre-process shifts to handle missing slotIds (i.e., create new slots if no slotId)
 	req.shifts = processShifts(req.shifts);
 
 	// Validate the schema after processing
@@ -109,11 +225,8 @@ export const createPincodeHandler = middy(async (event) => {
 	.use(bodyValidator(pincodeSchema))
 	.use(errorHandler());
 
-// Handler for updating an existing pincode
 export const updatePincodeHandler = middy(async (event) => {
 	const req = JSON.parse(event.body);
-
-	// Pre-process shifts to handle missing slotIds for updates and new shifts
 	req.shifts = processShifts(req.shifts);
 
 	// Validate the schema after processing
@@ -125,7 +238,6 @@ export const updatePincodeHandler = middy(async (event) => {
 	.use(bodyValidator(pincodeSchema))
 	.use(errorHandler());
 
-// Schema for changing the active status of a pincode
 const changeActiveStatusSchema = z
 	.object({
 		status: z.boolean(),
@@ -135,7 +247,6 @@ const changeActiveStatusSchema = z
 		message: "must provide at least one pincode",
 	});
 
-// Handler for changing the active status of a pincode
 export const changeActiveStatusHandler = middy(async (event) => {
 	const req = JSON.parse(event.body);
 	return await changeActiveStatus(req);
@@ -143,17 +254,15 @@ export const changeActiveStatusHandler = middy(async (event) => {
 	.use(bodyValidator(changeActiveStatusSchema))
 	.use(errorHandler());
 
-// Schema for changing the delivery type of a pincode
 const changeDeliveryTypeSchema = z
 	.object({
-		type: z.enum(deliveryTypes),
+		deliveryTypes: z.array(z.enum(deliveryTypes)),
 		pincodes: z.array(z.string()),
 	})
 	.refine((ob) => ob.pincodes.length > 0, {
 		message: "must provide at least one pincode",
 	});
 
-// Handler for changing the delivery type of a pincode
 export const changeDeliveryTypeHandler = middy(async (event) => {
 	const req = JSON.parse(event.body);
 	return await changeDeliveryType(req);
@@ -161,7 +270,6 @@ export const changeDeliveryTypeHandler = middy(async (event) => {
 	.use(bodyValidator(changeDeliveryTypeSchema))
 	.use(errorHandler());
 
-// Handler for listing pincodes with optional filters
 export const listhandler = middy(async (event) => {
 	let search = event.queryStringParameters?.search || undefined;
 	let status = event.queryStringParameters?.status || undefined;

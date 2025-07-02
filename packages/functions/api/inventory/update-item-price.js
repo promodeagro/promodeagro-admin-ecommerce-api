@@ -11,42 +11,33 @@ export const reqSchmea = z.array(
 	z
 		.object({
 			id: z.string(),
-			compareAt: z.number().positive(),
-			onlineStorePrice: z.number().positive(),
+
+			purchasingPrice: z.number().positive(),
+
+			sellingPrice: z.number().positive(),
 		})
-		.refine((ob) => ob.compareAt > ob.onlineStorePrice, {
-			message: "compareAt must be greater than onlineStorePrice",
-		})
+
 );
+
 export const handler = middy(async (event) => {
 	const req = JSON.parse(event.body);
+	console.log(req);
+
 	await Promise.all(
 		req.map(async (item) => {
-			const product = await findById(
-				Table.productsTable.tableName,
-				item.id
-			);
-			const InventoryItem = await findById(
-				Table.inventoryTable.tableName,
-				product.itemCode
-			);
 			return update(
-				Table.inventoryTable.tableName,
-				{ id: product.itemCode },
+				Table.productsTable.tableName,
+				{ id: item.id },
 				{
-					compareAt: item.compareAt,
-					onlineStorePrice: item.onlineStorePrice,
-					unitPrices: calculateUnitPrices(
-						product.unit,
-						item.onlineStorePrice,
-						item.compareAt,
-						InventoryItem
-					),
+					purchasingPrice: item.purchasingPrice,
+					sellingPrice: item.sellingPrice,
 				}
 			);
 		})
 	);
+
 	await Events.PriceUpdate.publish(req);
+
 	return {
 		statusCode: 200,
 		body: JSON.stringify({ message: "success" }),
