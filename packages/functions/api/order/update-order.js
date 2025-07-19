@@ -5,6 +5,7 @@ import {
   DynamoDBDocumentClient,
   UpdateCommand,
   GetCommand,
+  ScanCommand,
 } from "@aws-sdk/lib-dynamodb";
 import { Table } from "sst/node/table";
 
@@ -14,6 +15,7 @@ const docClient = DynamoDBDocumentClient.from(client);
 
 const orderTableName = Table.OrdersTable.tableName;
 const productTableName = Table.productsTable.tableName;
+const inventoryTableName = Table.inventoryTable.tableName;
 
 
 const FREE_DELIVERY_THRESHOLD = 300;
@@ -90,6 +92,21 @@ async function findById(tableName, id) {
   const { Item } = await docClient.send(new GetCommand(params));
   return Item || null;
 }
+
+// Helper function to get all variants in a group
+async function getVariantsInGroup(groupId) {
+  const scanParams = {
+    TableName: productTableName,
+    FilterExpression: "groupId = :groupId",
+    ExpressionAttributeValues: {
+      ":groupId": groupId
+    }
+  };
+  
+  const { Items: variants } = await docClient.send(new ScanCommand(scanParams));
+  return variants || [];
+}
+
 export const handler = middy(async (event) => {
   try {
     const body = JSON.parse(event.body);
@@ -122,7 +139,7 @@ export const handler = middy(async (event) => {
     let existingItems = orderData.items || [];
     let removedItems = orderData.removedItems || [];
 
-    // 🚫 Remove items only if removeProductIds is not empty
+    // Remove items only if removeProductIds is not empty
     if (removeProductIds.length > 0) {
       const filteredItems = [];
       for (const item of existingItems) {
@@ -138,7 +155,7 @@ export const handler = middy(async (event) => {
       existingItems = filteredItems;
     }
 
-    // ➕ Add items only if addItems is not empty
+    // Add items only if addItems is not empty
     const newItems = [];
     if (addItems.length > 0) {
       for (const item of addItems) {
@@ -165,51 +182,45 @@ export const handler = middy(async (event) => {
 
         // If it's present in removedItems, remove it
         removedItems = removedItems.filter(r => r.productId !== product.id);
-
         newItems.push(newItem);
       }
     }
 
-    const updatedItems = [...existingItems, ...newItems];
+    // Ensure at least one real change (add/remove)
+    if (removeProductIds.length === 0 && addItems.length === 0) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ message: "No items to add or remove. Please specify at least one item to add or remove from the order." }),
+      };
+    }
 
-    // Only recalculate subtotal if items changed
+    const updatedItems = [...existingItems, ...newItems];
     const updatedSubtotal = (removeProductIds.length > 0 || addItems.length > 0)
       ? updatedItems.reduce((sum, item) => sum + item.subtotal, 0)
       : orderData.subtotal;
-
     const updatedSavings = (removeProductIds.length > 0 || addItems.length > 0)
       ? updatedItems.reduce((sum, item) => sum + item.savings, 0)
       : orderData.savings;
-
-
-
-
     const totalPrice = updatedSubtotal;
     var finalTotal = updatedSubtotal;
-
     const { charges: deliveryCharges} = calculateDeliveryCharges(
       totalPrice,
       orderData.address.zipCode
-  );
+    );
+    finalTotal = totalPrice + deliveryCharges;
 
-   finalTotal = totalPrice + deliveryCharges
-
-
-    // 🔧 Build update params
+    // Build update params
     const expressionAttributeNames = {
       "#status": "status",
     };
     const expressionAttributeValues = {
       ":status": status || orderData.status,
     };
-
     const updateExpressionParts = ["#status = :status"];
-
     if (removeProductIds.length > 0 || addItems.length > 0) {
       expressionAttributeNames["#items"] = "items";
       expressionAttributeNames["#removedItems"] = "removedItems";
       expressionAttributeNames["#deliveryCharges"] = "deliveryCharges";
-
       expressionAttributeValues[":deliveryCharges"] = deliveryCharges;
       expressionAttributeValues[":items"] = updatedItems;
       expressionAttributeValues[":removedItems"] = removedItems;
@@ -217,8 +228,6 @@ export const handler = middy(async (event) => {
       expressionAttributeValues[":savings"] = updatedSavings;
       expressionAttributeValues[":totalPrice"] = finalTotal;
       expressionAttributeValues[":finalTotal"] = finalTotal;
-      
-
       updateExpressionParts.push(
         "#items = :items",
         "#removedItems = :removedItems",
@@ -226,28 +235,25 @@ export const handler = middy(async (event) => {
         "savings = :savings",
         "totalPrice = :totalPrice",
         "finalTotal = :finalTotal",
-        "#deliveryCharges = :deliveryCharges" 
+        "#deliveryCharges = :deliveryCharges"
       );
     }
-    
     if (deliverySlot) {
       expressionAttributeNames["#deliverySlot"] = "deliverySlot";
       expressionAttributeValues[":deliverySlot"] = deliverySlot;
       updateExpressionParts.push("#deliverySlot = :deliverySlot");
     }
-
     if (assigned) {
       expressionAttributeNames["#assigned"] = "assigned";
       expressionAttributeValues[":assigned"] = assigned;
       updateExpressionParts.push("#assigned = :assigned");
     }
-
     if (packerId) {
       expressionAttributeNames["#packerId"] = "packerId";
       expressionAttributeValues[":packerId"] = packerId;
       updateExpressionParts.push("#packerId = :packerId");
     }
-
+    // Only update the order table, not inventory/products
     const updateParams = {
       TableName: orderTableName,
       Key: { id },
@@ -256,9 +262,13 @@ export const handler = middy(async (event) => {
       ExpressionAttributeValues: expressionAttributeValues,
       ReturnValues: "ALL_NEW",
     };
-
+    if (!expressionAttributeValues || Object.keys(expressionAttributeValues).length === 0) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ message: "No valid update fields provided. ExpressionAttributeValues must not be empty." }),
+      };
+    }
     const result = await docClient.send(new UpdateCommand(updateParams));
-
     return {
       statusCode: 200,
       body: JSON.stringify({
@@ -266,7 +276,6 @@ export const handler = middy(async (event) => {
         order: result.Attributes,
       }),
     };
-
   } catch (error) {
     console.error("Error updating order:", error);
     return {

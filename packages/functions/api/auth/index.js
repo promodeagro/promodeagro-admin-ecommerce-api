@@ -56,7 +56,7 @@ export const signup = async ({ email, name, role, password }) => {
 	await cognitoClient.send(
 		new AdminSetUserPasswordCommand(adminSetUserPasswordParams)
 	);
-	const id = crypto.randomUUID();
+	const id = crypto.randomUUID().split("-")[4];
 	const user = { id: id, email, role, name, active: true };
 	await save(usersTable, user);
 	return await signin({

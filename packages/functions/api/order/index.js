@@ -4,15 +4,48 @@ import {
 	ScanCommand,
 	TransactWriteCommand,
 	QueryCommand,
+	GetCommand,
+	UpdateCommand,
 } from "@aws-sdk/lib-dynamodb";
 import { Table } from "sst/node/table";
 import { findById, update } from "../../common/data";
+import { convertToStockUnit, handleStockQuantityUpdate, validateStockAvailability } from "../inventory/unitUtils";
 
 const client = new DynamoDBClient({ region: "ap-south-1" });
 const docClient = DynamoDBDocumentClient.from(client);
 
 const orderTable = Table.OrdersTable.tableName;
 const inventoryTable = Table.inventoryTable.tableName;
+const productsTable = Table.productsTable.tableName;
+
+// Helper function to get all variants in a group
+async function getVariantsInGroup(groupId) {
+  const scanParams = {
+    TableName: productsTable,
+    FilterExpression: "groupId = :groupId",
+    ExpressionAttributeValues: {
+      ":groupId": groupId
+    }
+  };
+  
+  const { Items: variants } = await docClient.send(new ScanCommand(scanParams));
+  return variants || [];
+}
+
+// Helper function to update stock for products
+async function updateStockForProduct(product, quantity, operation) {
+  const stockUpdate = handleStockQuantityUpdate(product, quantity, operation);
+  const updateExpressions = [];
+  const expressionAttributeValues = {};
+  if (stockUpdate.stockQuantityUpdate) {
+    updateExpressions.push(stockUpdate.stockQuantityUpdate.expression);
+    Object.assign(expressionAttributeValues, stockUpdate.stockQuantityUpdate.values);
+  }
+  return {
+    updateExpressions,
+    expressionAttributeValues
+  };
+}
 
 export const listOrdersInventory = async (
 	type,
@@ -20,6 +53,7 @@ export const listOrdersInventory = async (
 	status,
 	shift,
 	pincode,
+	paymentStatus,
 	nextKey
 ) => {
 	let now = new Date();
@@ -87,6 +121,13 @@ export const listOrdersInventory = async (
 		expressionNames["#pn"] = "zipCode";
 		expressionValues[":zipCode"] = pincode;
 	}
+	if (paymentStatus) {
+		if (["PAID", "PENDING"].includes(paymentStatus)) {
+			filterExpressions.push("paymentDetails.#ps = :paymentStatus");
+			expressionNames["#ps"] = "status";
+			expressionValues[":paymentStatus"] = paymentStatus;
+		}
+	}
 
 	if (filterExpressions.length > 0) {
 		params.FilterExpression = filterExpressions.join(" AND ");
@@ -120,57 +161,51 @@ export const cancelOrder = async (id, reason) => {
 		cancelReason: reason,
 		cancellationBy: "admin",
 	};
-	const input = {
-		TransactItems: [
-			{
-				Update: {
-					TableName: orderTable,
-					Key: { id },
-					UpdateExpression:
-						"SET #status = :status, #cancellationData = :cancellationData",
-					ExpressionAttributeNames: {
-						"#status": "status",
-						"#cancellationData": "cancellationData",
-					},
-					ExpressionAttributeValues: {
-						":status": "cancelled",
-						":cancellationData": cancellationData,
-					},
+
+	// Only update the order status and cancellation data, do not update inventory
+	const updateParams = {
+				TableName: orderTable,
+				Key: { id },
+				UpdateExpression: "SET #status = :status, #cancellationData = :cancellationData",
+				ExpressionAttributeNames: {
+					"#status": "status",
+					"#cancellationData": "cancellationData",
 				},
-			},
-			...order.items.map((item) => ({
-				Update: {
-					TableName: inventoryTable,
-					Key: { id: item.productId },
-					UpdateExpression: "ADD stockQuantity :quantity",
-					ExpressionAttributeValues: {
-						":quantity": item.quantity,
-					},
+				ExpressionAttributeValues: {
+					":status": "cancelled",
+					":cancellationData": cancellationData,
 				},
-			})),
-		],
 	};
-	const command = new TransactWriteCommand(input);
-	await docClient.send(command);
-	return {
-		statusCode: 200,
-		body: JSON.stringify({
-			message: "order cancelled",
-		}),
-	};
+	
+	try {
+		await docClient.send(new UpdateCommand(updateParams));
+		return {
+			statusCode: 200,
+			body: JSON.stringify({
+				message: "order cancelled",
+			}),
+		};
+	} catch (error) {
+		console.error("Order cancellation failed:", error);
+		return {
+			statusCode: 500,
+			body: JSON.stringify({
+				message: "Failed to cancel order",
+				error: error.message,
+			}),
+		};
+	}
 };
 
 export const reAttempt = async (id) => {
 	const order = await findById(orderTable, id);
 
-	console.log(order)
 	if (order.status !== "cancelled") {
 		return {
 			statusCode: 400,
 			body: JSON.stringify({ message: "order is not cancelled" }),
 		};
 	}
-	console.log(order.status)
 
 	const cancellationData = {
 		status: "order placed", // Change the status to "order placed"
@@ -179,35 +214,39 @@ export const reAttempt = async (id) => {
 		cancellationBy: null,   // No cancellation by user
 	};
 
-	const input = {
-		TransactItems: [
-			{
-				Update: {
+	// Only update the order status and cancellation data, do not update inventory
+	const updateParams = {
 					TableName: orderTable,
 					Key: { id },
-					UpdateExpression:
-						"SET #status = :status, #cancellationData = :cancellationData",
+					UpdateExpression: "SET #status = :status, #cancellationData = :cancellationData",
 					ExpressionAttributeNames: {
 						"#status": "status",
 						"#cancellationData": "cancellationData",
 					},
 					ExpressionAttributeValues: {
-						":status": "order placed",    // Setting status to "order placed"
+						":status": "order placed",
 						":cancellationData": cancellationData,
 					},
-				},
-			},
-		],
-	};
-
-	const command = new TransactWriteCommand(input);
-	await docClient.send(command);
-	return {
-		statusCode: 200,
-		body: JSON.stringify({
-			message: "order status updated to 'order placed'",
-		}),
-	};
+				};
+				
+	try {
+		await docClient.send(new UpdateCommand(updateParams));
+				return {
+					statusCode: 200,
+					body: JSON.stringify({
+						message: "order status updated to 'order placed'",
+					}),
+				};
+	} catch (error) {
+		console.error("Order re-attempt failed:", error);
+		return {
+			statusCode: 500,
+			body: JSON.stringify({
+				message: "Failed to re-attempt order",
+				error: error.message,
+			}),
+		};
+	}
 };
 
 

@@ -7,6 +7,7 @@ import middy from "@middy/core";
 import { bodyValidator } from "../util/bodyValidator";
 import { errorHandler } from "../util/errorHandler";
 import { parse } from "lambda-multipart-parser"; // For parsing multipart form-data
+import { standardizeUnits, standardizeVariantUnits } from "./unitUtils";
 
 
 export const categoriesWithSubcategories = {
@@ -32,14 +33,9 @@ const variantSchema = z.object({
     purchasingPrice: z.number().nonnegative(),
     sellingPrice: z.number().nonnegative(),  // Fixed: should be a number
     comparePrice: z.number().nonnegative(),  // Fixed: should be a number
-    buyerLimit: z.number().nonnegative(),    // Fixed: should be a number
     lowStockAlert: z.number().nonnegative(), // Fixed: should be a number
     availability: z.boolean(),
     unit: z.string(),
-    minimumSellingWeight: z.number().nonnegative().optional(),
-    maximumSellingWeight: z.number().nonnegative().optional(),
-    MinimumSellingWeightUnit: z.string().optional(),
-    MaximumSellingWeightUnit: z.string().optional(),
     totalQuantityInB2c: z.number().nonnegative().optional(),
     totalquantityB2cUnit: z.string().optional(),
     stockQuantity: z.number().nonnegative(),
@@ -61,13 +57,10 @@ const inventoryItemSchema = z.object({
     stockQuantity: z.number().nonnegative(),
     stockQuantityAlert: z.number().nonnegative(),
     totalQuantityInB2c: z.number().nonnegative(),
-    minimumSellingWeight: z.number().nonnegative(),
-    maximumSellingWeight: z.number().nonnegative(),
-    buyerLimit: z.number().nonnegative(),
     expiry: z.string(),
-    MinimumSellingWeightUnit: z.string(),
-    MaximumSellingWeightUnit: z.string(),
     totalquantityB2cUnit: z.string(),
+    overallStock: z.number().nonnegative().optional(),
+    overallStockUnit: z.string().optional(),
     images: z.array(z.string().url()).min(1, "At least 1 image is required"),
     tags: z.array(z.string()).optional(),
     variants: z.array(variantSchema).optional(),
@@ -96,17 +89,14 @@ async function excelToJson(fileBuffer) {
         const stockQuantity = parseInt(row["stockQuantity"]) || 0;
         const stockAlert = parseInt(row["stockQuantityAlert"]) || 0;
         const totalQuantityB2C = parseInt(row["totalQuantityInB2c"]) || 0;
-        const minSellingWeight = parseFloat(row["minimumSellingWeight"]) || 0.0;
-        const maxSellingWeight = parseFloat(row["maximumSellingWeight"]) || 0.0;
-        const buyerLimit = parseInt(row["buyerLimit"]) || 0;
+        const overallStock = parseFloat(row["overallStock"]) || 0;
+        const overallStockUnit = row["overallStockUnit"]?.toString().trim() || "unit";
 
         const expiry = row["expiry"]?.toString().trim() || "No Expiry";
 
-        // Ensure string fields are properly trimmed
+        // Ensure string fields are properly trimmed and standardized
         const stockUnit = row["stockQuantity unit"]?.toString().trim() || "unit";
         const totalB2CUnit = row["TotalquantityB2cUnit"]?.toString().trim() || "unit";
-        const minWeightUnit = row["MinimumSellingWeightUnit"]?.toString().trim() || "unit";
-        const maxWeightUnit = row["MaximumSellingWeightUnit"]?.toString().trim() || "unit";
 
         // Handle images and tags as arrays
         const images = row["images"] ? row["images"].toString().split(",").map(img => img.trim()) : [];
@@ -128,17 +118,17 @@ async function excelToJson(fileBuffer) {
             stockQuantity,
             stockQuantityAlert: stockAlert,
             totalQuantityInB2c: totalQuantityB2C,
-            minimumSellingWeight: minSellingWeight,
-            maximumSellingWeight: maxSellingWeight,
-            buyerLimit,
             expiry,
-            MinimumSellingWeightUnit: minWeightUnit,
-            MaximumSellingWeightUnit: maxWeightUnit,
             totalquantityB2cUnit: totalB2CUnit,
+            overallStock,
+            overallStockUnit,
             images,
             tags,
             variants: []
         };
+        
+        // Standardize units in the product data
+        productData = standardizeUnits(productData);
 
         if (productsDict[productName]) {
             if (isVariant) {
@@ -148,18 +138,16 @@ async function excelToJson(fileBuffer) {
                     purchasingPrice,
                     sellingPrice,
                     comparePrice,
-                    buyerLimit,
                     lowStockAlert: stockAlert,
                     availability: stockQuantity > 0,
                     unit: stockUnit,
-                    minimumSellingWeight: minSellingWeight,
-                    maximumSellingWeight: maxSellingWeight,
-                    MinimumSellingWeightUnit: minWeightUnit,
-                    MaximumSellingWeightUnit: maxWeightUnit,
                     totalQuantityInB2c: totalQuantityB2C,
                     totalquantityB2cUnit: totalB2CUnit,
                     stockQuantity
                 };
+                
+                // Standardize units in the variant data
+                variantData = standardizeUnits(variantData);
                 productsDict[productName].variants.push(variantData);
             }
         } else {

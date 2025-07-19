@@ -353,6 +353,7 @@ export function API({ app, stack }: StackContext) {
 			"GET /inventory": "packages/functions/api/inventory/get-items.handler",
 			"GET /inventory/all": "packages/functions/api/inventory/get-allItems.handler",
 			"GET /inventory/collection": "packages/functions/api/inventory/get-collection-item.handler",
+			"GET /inventory/collection/{groupId}": "packages/functions/api/inventory/get-collection-by-groupId.handler",
 			"GET /inventory/{id}": "packages/functions/api/inventory/get-item.handler",
 			"GET /inventory/stats": "packages/functions/api/inventory/inventory-stats.handler",
 			"POST /inventory": "packages/functions/api/inventory/add-item.handler",
@@ -408,6 +409,7 @@ export function API({ app, stack }: StackContext) {
 			"GET /runsheet/{id}": "packages/functions/api/runsheet/runsheet.getRunsheetHandler",
 			"PUT /runsheet/{id}/close": "packages/functions/api/runsheet/runsheet.closeRunsheetHandler",
 			"GET /rider": "packages/functions/api/rider/rider.listRidersHandler",
+			"GET /rider/summary": "packages/functions/api/rider/rider.getRiderSummaryHandler",
 			"GET /rider/{id}": "packages/functions/api/rider/rider.getRiderHandler",
 			"PATCH /rider/{id}": "packages/functions/api/rider/rider.patchRiderHandler",
 			"PATCH /rider/{id}/document": "packages/functions/api/rider/rider.patchDocuemntHandler",
@@ -436,6 +438,9 @@ export function API({ app, stack }: StackContext) {
 			"GET /admin/users/{id}": "packages/functions/api/rbac/rbac.getUserHandler",
 			"PATCH /admin/users": "packages/functions/api/rbac/rbac.changeActiveStatusHandler",
 			"GET /notification/{id}": "packages/functions/api/notification/notification.listHandler",
+			"POST /inventory/add-variant": "packages/functions/api/inventory/add-variant.handler",
+			"DELETE /inventory/delete-group/{groupId}": "packages/functions/api/inventory/delete-group.handler",
+			"PUT /inventory/update-group/{groupId}": "packages/functions/api/inventory/update-group.handler",
 		},
 	});
 

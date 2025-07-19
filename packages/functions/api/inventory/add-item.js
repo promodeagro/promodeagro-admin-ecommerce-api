@@ -5,6 +5,7 @@ import { Table } from "sst/node/table";
 import middy from "@middy/core";
 import { bodyValidator } from "../util/bodyValidator";
 import { errorHandler } from "../util/errorHandler";
+import { standardizeUnits, standardizeVariantUnits, standardizeAttributeUnits } from "./unitUtils";
 
 export const categoriesWithSubcategories = {
   "Fresh Vegetables": [
@@ -29,17 +30,14 @@ const variantSchema = z.object({
   purchasingPrice: z.number().nonnegative(),
   sellingPrice: z.number().nonnegative(),
   comparePrice: z.number().nonnegative(),
-  buyerLimit: z.number().nonnegative(),
   lowStockAlert: z.number().nonnegative(),
   availability: z.boolean(),
   unit: z.string(),
-  minimumSellingWeight: z.number().nonnegative().optional(),
-  maximumSellingWeight: z.number().nonnegative().optional(),
-  MinimumSellingWeightUnit: z.string().optional(),
-  MaximumSellingWeightUnit: z.string().optional(),
   totalQuantityInB2c: z.number().nonnegative().optional(),
   totalquantityB2cUnit: z.string().optional(),
   stockQuantity: z.number().nonnegative(),
+  expiry: z.string().optional(),
+  images: z.array(z.string().url()).max(5, "Maximum 5 images allowed"),
 });
 
 const inventoryItemSchema = z.object({
@@ -56,13 +54,10 @@ const inventoryItemSchema = z.object({
   stockQuantity: z.number().nonnegative(),
   stockQuantityAlert: z.number().nonnegative(),
   totalQuantityInB2c: z.number().nonnegative(),
-  minimumSellingWeight: z.number().nonnegative(),
-  maximumSellingWeight: z.number().nonnegative(),
-  buyerLimit: z.number().nonnegative(),
   expiry: z.string(),
-  MinimumSellingWeightUnit: z.string(),
-  MaximumSellingWeightUnit: z.string(),
   totalquantityB2cUnit: z.string(),
+  overallStock: z.number().nonnegative().optional(),
+  overallStockUnit: z.string().optional(),
   images: z.array(z.string().url()).min(1, "At least 1 image is required"),
   tags: z.array(z.string()).optional(),
   variants: z.array(variantSchema).optional(),
@@ -85,8 +80,31 @@ export const handler = middy(async (event) => {
       };
     }
 
-    if (req.variants?.length > 0) {
-      for (const variant of req.variants) {
+    // Standardize units in the main request
+    const standardizedReq = standardizeUnits(req);
+    
+    // Standardize units in variants if they exist
+    if (standardizedReq.variants?.length > 0) {
+      standardizedReq.variants = standardizeVariantUnits(standardizedReq.variants);
+      
+      // Also standardize units within attribute strings
+      standardizedReq.variants = standardizedReq.variants.map(variant => ({
+        ...variant,
+        attribute: standardizeAttributeUnits(variant.attribute)
+      }));
+    }
+
+    console.log("Standardized units in add item:", {
+      original: req.units,
+      standardized: standardizedReq.units,
+      originalB2cUnit: req.totalquantityB2cUnit,
+      standardizedB2cUnit: standardizedReq.totalquantityB2cUnit
+    });
+
+    if (standardizedReq.variants?.length > 0) {
+      // Determine if shared stock should be used for all variants
+      const shouldUseSharedStock = (!standardizedReq.variants.some(v => v.stockQuantity && v.stockQuantity > 0)) && (standardizedReq.overallStock !== undefined && standardizedReq.overallStock !== null);
+      for (const variant of standardizedReq.variants) {
         const variantId = Math.floor(Math.random() * 10000000000).toString();
         const discountPercentage = variant.comparePrice > 0
           ? ((variant.comparePrice - variant.sellingPrice) / variant.comparePrice) * 100
@@ -96,40 +114,82 @@ export const handler = middy(async (event) => {
           id: variantId,
           groupId: groupId,
           availability: variant.availability,
-          name: req.name,
-          search_name: req.name.toLowerCase(),
-          expiry: req.expiry,
-          category: req.category,
-          subCategory: req.subCategory,
-          isVariant: true,
-          tags: req.tags || [],
-          description: req.description,
-          images: req.images || [],
-          image: req.images?.[0] || "",
-          units: variant.unit,
-          minimumSellingWeight: variant.minimumSellingWeight,
-          maximumSellingWeight: variant.maximumSellingWeight,
-          MaximumSellingWeightUnit: variant.MaximumSellingWeightUnit,
-          MinimumSellingWeightUnit: variant.MinimumSellingWeightUnit,
+          name: standardizedReq.name,
+          search_name: standardizedReq.name.toLowerCase(),
+          expiry: variant.expiry || standardizedReq.expiry,
+          category: standardizedReq.category,
+          subCategory: standardizedReq.subCategory,
+          tags: standardizedReq.tags || [],
+          description: standardizedReq.description,
+          images: variant.images || standardizedReq.images || [],
+          image: (variant.images?.[0] || standardizedReq.images?.[0]) || "",
+          units: variant.unit, // Already standardized
           totalQuantityInB2c: variant.totalQuantityInB2c,
-          totalquantityB2cUnit: variant.totalquantityB2cUnit,
-          stockQuantity: variant.stockQuantity,
-          buyerLimit: variant.buyerLimit,
+          totalquantityB2cUnit: variant.totalquantityB2cUnit, // Already standardized
+          stockQuantity: shouldUseSharedStock ? null : variant.stockQuantity,
           stockQuantityAlert: variant.lowStockAlert,
           purchasingPrice: variant.purchasingPrice,
           sellingPrice: variant.sellingPrice,
           comparePrice: variant.comparePrice,
           discount: discountPercentage.toFixed(2),
+          attribute: variant.attribute, // Add the attribute field
+          overallStock: standardizedReq.overallStock,
+          overallStockUnit: standardizedReq.overallStockUnit,
+          isVariant: true,
+          isParentProduct: false,
+          useSharedStock: shouldUseSharedStock ? true : undefined,
         };
 
-        console.log("Saving variant:", variantItem);
         await save(Table.productsTable.tableName, variantItem);
       }
+    } else {
+      // Create main item when no variants are provided (existing logic)
+      const mainItemId = Math.floor(Math.random() * 10000000000).toString();
+      const discountPercentage = standardizedReq.comparePrice > 0
+        ? ((standardizedReq.comparePrice - standardizedReq.sellingPrice) / standardizedReq.comparePrice) * 100
+        : 0;
+
+      const mainItem = {
+        id: mainItemId,
+        groupId: groupId,
+        availability: standardizedReq.availability,
+        name: standardizedReq.name,
+        search_name: standardizedReq.name.toLowerCase(),
+        expiry: standardizedReq.expiry,
+        category: standardizedReq.category,
+        subCategory: standardizedReq.subCategory,
+        isVariant: false,
+        isParentProduct: false,
+        tags: standardizedReq.tags || [],
+        description: standardizedReq.description,
+        images: standardizedReq.images || [],
+        image: standardizedReq.images?.[0] || "",
+        units: standardizedReq.units,
+        totalQuantityInB2c: standardizedReq.totalQuantityInB2c,
+        totalquantityB2cUnit: standardizedReq.totalquantityB2cUnit,
+        stockQuantity: standardizedReq.stockQuantity,
+        stockQuantityAlert: standardizedReq.stockQuantityAlert,
+        purchasingPrice: standardizedReq.purchasingPrice,
+        sellingPrice: standardizedReq.sellingPrice,
+        comparePrice: standardizedReq.comparePrice,
+        discount: discountPercentage.toFixed(2),
+        attribute: standardizedReq.attribute,
+        overallStock: standardizedReq.overallStock,
+        overallStockUnit: standardizedReq.overallStockUnit,
+      };
+
+      console.log("Saving main item with standardized units:", mainItem);
+      await save(Table.productsTable.tableName, mainItem);
     }
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ message: "Item and variants added successfully" }),
+      body: JSON.stringify({ 
+        message: "Item added successfully",
+        groupId: groupId,
+        hasVariants: standardizedReq.variants?.length > 0,
+        variantCount: standardizedReq.variants?.length || 0
+      }),
     };
   } catch (error) {
     console.error("Error processing request:", error);

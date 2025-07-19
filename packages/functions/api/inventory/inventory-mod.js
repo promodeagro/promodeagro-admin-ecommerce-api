@@ -4,16 +4,16 @@ import { Table } from "sst/node/table";
 import middy from "@middy/core";
 import { bodyValidator } from "../util/bodyValidator";
 import { errorHandler } from "../util/errorHandler";
-import { updateItemPricing } from ".";
+import { updateItemPricing, updateProductTableStockAndPrice } from ".";
 
 const ItemSchema = z.object({
 	id: z.string(),
 	itemCode: z.string(),
 	name: z.string(),
-	stock: z.number().int(),
+	stock: z.number(), // allow decimals
 	currentCompareAtPrice: z.number(),
 	currentOnlineStorePrice: z.number(),
-	adjustQuantity: z.number().int(),
+	adjustQuantity: z.number(), // allow decimals
 	newPurchasingPrice: z.number().positive(),
 	newOnlineStorePrice: z.number().positive(),
 });
@@ -38,7 +38,10 @@ export const add = middy(async (event) => {
 		items: JSON.stringify(req.items),
 	};
 	await save(Table.inventoryModificationTable.tableName, item);
-	await Promise.all(req.items.map((item) => updateItemPricing(item)));
+	await Promise.all(req.items.map(async (item) => {
+		await updateItemPricing(item); // inventoryTable
+		await updateProductTableStockAndPrice(item); // productsTable
+	}));
 	return {
 		statusCode: 200,
 		body: JSON.stringify({ message: "Item added successfully" }),

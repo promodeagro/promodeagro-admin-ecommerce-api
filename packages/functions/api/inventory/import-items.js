@@ -4,6 +4,7 @@ import { updateItem } from ".";
 import { errorHandler } from "../util/errorHandler";
 import { parse } from "lambda-multipart-parser"; // For parsing multipart form-data
 import { read, readFile, utils } from "xlsx";
+import { standardizeUnits } from "./unitUtils";
 
 export const handler = middy(async (event) => {
     try {
@@ -35,7 +36,7 @@ export const handler = middy(async (event) => {
                 description: row.DESCRIPTION,
                 category: row.CATEGORY,
                 subCategory: row.SUBCATEGORY,
-                units: row.UNITS.toLowerCase(),
+                units: row.UNITS, // Will be standardized
                 // expiry: row.EXPIRY ? new Date(row.EXPIRY).toISOString() : undefined,
                 availability: row.AVAILABILITY,
                 sellingPrice: row.SELLINGPRICE,
@@ -45,22 +46,30 @@ export const handler = middy(async (event) => {
                 stockQuantityAlert: row.STOCKQUANTITYALERT,
                 comparePrice: row.COMPAREPRICE,
                 isVariant: row.ISVARIANT,
-                minimumSellingWeight: row.MINIMUMSELLINGWEIGHT,
-                minimumSellingWeightUnit: row.MINIMUMSELLINGWEIGHTUNIT,
-                maximumSellingWeight: row.MAXIMUMSELLINGWEIGHT,
-                maximumSellingWeightUnit: row.MAXIMUMSELLINGWEIGHTUNIT,
-                buyerLimit: row.BUYERLIMIT,
                 tags: row.TAGS ? row.TAGS.split(",") : [],
                 searchName: row.SEARCH_NAME,
                 totalQuantityInB2C: row.TOTALQUANTITYINB2C,
+                totalquantityB2cUnit: row.TOTALQUANTITYB2CUNIT,
+                overallStock: row.OVERALLSTOCK,
+                overallStockUnit: row.OVERALLSTOCKUNIT,
                 images: row.IMAGES ? JSON.parse(row.IMAGES) : [],
                 image: row.IMAGE,
                 createdAt: row.CREATEDAT ? new Date(row.CREATEDAT).toISOString() : undefined,
                 updatedAt: new Date().toISOString(),
             };
 
+            // Standardize units in the update data
+            const standardizedUpdateData = standardizeUnits(updateData);
+            
+            console.log("Import standardization:", {
+                original: updateData.units,
+                standardized: standardizedUpdateData.units,
+                originalB2cUnit: updateData.totalquantityB2cUnit,
+                standardizedB2cUnit: standardizedUpdateData.totalquantityB2cUnit
+            });
+
             // Update the item in DynamoDB
-            await updateItem(productId, updateData);
+            await updateItem(productId, standardizedUpdateData);
         }
 
         return {

@@ -7,6 +7,7 @@ import {
 	rejectRider,
 	verifyDocument,
 	searchListRiders,
+	getRiderSummary,
 } from ".";
 import { bodyValidator } from "../util/bodyValidator";
 import { errorHandler } from "../util/errorHandler";
@@ -31,6 +32,14 @@ export const getRiderHandler = middy(async (event) => {
 		};
 	}
 	return await getRider(id);
+}).use(errorHandler());
+
+export const getRiderSummaryHandler = middy(async (event) => {
+    const result = await getRiderSummary();
+    return {
+        statusCode: 200,
+        body: JSON.stringify(result),
+    };
 }).use(errorHandler());
 
 const patchRiderSchema = z

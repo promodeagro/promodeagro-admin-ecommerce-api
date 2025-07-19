@@ -6,11 +6,12 @@ const docClient = DynamoDBDocumentClient.from(dynamoClient);
 
 export const handler = async (event) => {
 	const fallbackValue = 0;
-	const [totalProductsCount, activeProducts, inactiveProducts] =
+	const [totalProductsCount, activeProducts, inactiveProducts, totalGroups] =
 		await Promise.all([
 			totalProducts(),
 			getActiveProducts(true).catch(() => fallbackValue),
 			getActiveProducts(false).catch(() => fallbackValue),
+        getTotalGroups().catch(() => fallbackValue),
 		]);
 
 	return {
@@ -19,6 +20,7 @@ export const handler = async (event) => {
 			totalProducts: totalProductsCount,
 			active: activeProducts,
 			inactive: inactiveProducts,
+        totalGroups: totalGroups,
 		}),
 	};
 };
@@ -63,4 +65,32 @@ const totalProducts = async () => {
 	});
 	const response = await docClient.send(command);
 	return response.Table.ItemCount;
+};
+
+// Add a function to count total groups (unique groupIds)
+const getTotalGroups = async () => {
+    let lastEvaluatedKey = undefined;
+    const groupIdSet = new Set();
+
+    do {
+        const params = {
+            TableName: Table.productsTable.tableName,
+            ProjectionExpression: "groupId, id",
+            ExclusiveStartKey: lastEvaluatedKey,
+        };
+        try {
+            const command = new ScanCommand(params);
+            const data = await docClient.send(command);
+            (data.Items || []).forEach(item => {
+                // If groupId exists, use it; otherwise, use id (for single/ungrouped items)
+                groupIdSet.add(item.groupId || item.id);
+            });
+            lastEvaluatedKey = data.LastEvaluatedKey;
+        } catch (error) {
+            console.error("Error scanning table for groups:", error);
+            throw error;
+        }
+    } while (lastEvaluatedKey);
+
+    return groupIdSet.size;
 };

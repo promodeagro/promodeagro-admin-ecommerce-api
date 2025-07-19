@@ -1,5 +1,5 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, ScanCommand } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocumentClient, ScanCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
 import { Table } from "sst/node/table";
 import { findById, save, update } from "../../common/data";
 import { notification } from "../util/notification";
@@ -47,6 +47,7 @@ export const listRiders = async (status, nextKey) => {
 
 	const modData = data.Items.map((item) => ({
 		...item,
+		id: item.id, // Use full id
 		bankDetails: undefined,
 		documents: undefined,
 		otpExpire: undefined,
@@ -85,6 +86,7 @@ export const searchListRiders = async (query) => {
 
 	const modData = data.Items.map((item) => ({
 		...item,
+		id: item.id, // Use full id
 		bankDetails: undefined,
 		documents: undefined,
 		otpExpire: undefined,
@@ -101,6 +103,12 @@ export const searchListRiders = async (query) => {
 
 export const getRider = async (id) => {
 	const rider = await findById(usersTable, id);
+	if (rider) {
+		return {
+			...rider,
+			id: rider.id, // Use full id
+		};
+	}
 	return rider;
 };
 
@@ -192,4 +200,89 @@ export const verifyDocument = async (id, { status, document, reason }) => {
 	const newNot = notification(id, type, message);
 	await save(notificationsTable, newNot);
 	return await update(usersTable, { id: id }, { documents: documents });
+};
+
+// Rider Summary API
+const orderTable = Table.OrdersTable.tableName;
+const runsheetTable = Table.runsheetTable.tableName;
+
+export const getRiderSummary = async () => {
+    // 1. Get all riders
+    const params = {
+        TableName: usersTable,
+        FilterExpression: "#role = :riderRole",
+        ExpressionAttributeNames: { "#role": "role" },
+        ExpressionAttributeValues: { ":riderRole": "rider" },
+    };
+    const data = await docClient.send(new ScanCommand(params));
+    const riders = data.Items || [];
+
+    // 2. For each rider, aggregate summary
+    const summary = await Promise.all(riders.map(async (rider) => {
+        const riderId = rider.id;
+        // Open Runsheets
+        const runsheetParams = {
+            TableName: runsheetTable,
+            IndexName: "riderIndex",
+            KeyConditionExpression: "riderId = :riderId",
+            ExpressionAttributeValues: { ":riderId": riderId },
+        };
+        let openRunsheets = 0;
+        try {
+            const runsheetData = await docClient.send(new QueryCommand(runsheetParams));
+            openRunsheets = (runsheetData.Items || []).filter(r => r.status !== "closed").length;
+        } catch (e) { openRunsheets = 0; }
+
+        // OFD Orders (status: 'on the way')
+        const ofdParams = {
+            TableName: orderTable,
+            IndexName: "statusCreatedAtIndex",
+            KeyConditionExpression: "#s = :status",
+            ExpressionAttributeNames: { "#s": "status" },
+            ExpressionAttributeValues: { ":status": "on the way" },
+        };
+        let ofdOrders = 0;
+        let deliveredOrders = 0;
+        try {
+            const ofdData = await docClient.send(new QueryCommand(ofdParams));
+            const ofdItems = (ofdData.Items || []).filter(o => o.riderId === riderId);
+            ofdOrders = ofdItems.length;
+        } catch (e) { ofdOrders = 0; }
+
+        // Delivered Orders
+        const deliveredParams = {
+            TableName: orderTable,
+            IndexName: "statusCreatedAtIndex",
+            KeyConditionExpression: "#s = :status",
+            ExpressionAttributeNames: { "#s": "status" },
+            ExpressionAttributeValues: { ":status": "delivered" },
+        };
+        try {
+            const deliveredData = await docClient.send(new QueryCommand(deliveredParams));
+            const deliveredItems = (deliveredData.Items || []).filter(o => o.riderId === riderId);
+            deliveredOrders = deliveredItems.length;
+        } catch (e) { deliveredOrders = 0; }
+
+        // Conversion Ratio
+        let conversionRatio = 0;
+        if (ofdOrders > 0) {
+            conversionRatio = Math.round((deliveredOrders / ofdOrders) * 100);
+        }
+
+        return {
+            riderId: riderId, // Use full riderId
+            name: rider.personalDetails?.fullName || rider.s_name || '',
+            email: rider.personalDetails?.email || rider.email || '',
+            number: rider.number || '',
+            openRunsheets: openRunsheets,
+            ofdOrders: ofdOrders,
+            deliveries: `${deliveredOrders}/${ofdOrders}`,
+            conversionRatio: `${conversionRatio}%`,
+        };
+    }));
+
+    return {
+        count: summary.length,
+        items: summary,
+    };
 };

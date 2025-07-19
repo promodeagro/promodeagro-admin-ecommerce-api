@@ -23,6 +23,17 @@ export const handler = middy(async (event) => {
 	}
 	return {
 		statusCode: 200,
-		body: JSON.stringify(data),
+		body: JSON.stringify({
+			...data,
+			items: data.items?.map(item => ({
+				...item,
+				image: item.image || (item.images && item.images[0]) || null,
+				images: item.images || [],
+				overallStock: item.overallStock || null,
+				overallStockUnit: item.overallStockUnit || null,
+				expiry: item.expiry || null,
+			})) || [],
+			nextKey: data.nextKey || null
+		}),
 	};
 }).use(errorHandler());

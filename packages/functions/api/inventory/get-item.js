@@ -13,6 +13,13 @@ export const handler = middy(async (event) => {
 	const data = await get(id);
 	return {
 		statusCode: 200,
-		body: JSON.stringify(data),
+		body: JSON.stringify({
+			...data,
+			image: data.image || (data.images && data.images[0]) || null,
+			images: data.images || [],
+			overallStock: data.overallStock || null,
+			overallStockUnit: data.overallStockUnit || null,
+			expiry: data.expiry || null,
+		}),
 	};
 }).use(errorHandler());

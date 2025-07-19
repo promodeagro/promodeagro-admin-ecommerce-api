@@ -29,7 +29,59 @@ This document provides detailed information about the available API endpoints, i
     -   `id` (string): The ID of the inventory item.
 -   **Query Parameters:** None
 
-#### 3. Get Inventory Stats
+#### 3. Get Collection by Group ID
+
+-   **HTTP Verb:** GET
+-   **Route:** `/inventory/collection/{groupId}`
+-   **Description:** Retrieves a specific collection with all its variations by group ID.
+-   **Path Parameters:**
+    -   `groupId` (string): The group ID of the collection.
+-   **Query Parameters:** None
+-   **Response:**
+    ```json
+    {
+        "groupId": "collection-123",
+        "name": "Red Apples",
+        "category": "Fresh Fruits",
+        "subCategory": "Daily Fruits",
+        "description": "Fresh red apples from local farms.",
+        "image": "https://example.com/images/apple-main.jpg",
+        "images": ["https://example.com/images/apple1.jpg"],
+        "tags": ["organic", "fresh"],
+        "variations": [
+            {
+                "id": "apple-small-1",
+                "groupId": "collection-123",
+                "name": "Red Apples",
+                "attribute": "Small Size",
+                "purchasingPrice": 1.50,
+                "sellingPrice": 1.99,
+                "comparePrice": 2.49,
+                "stockQuantity": 60,
+                "availability": true,
+                "units": "pieces",
+                "active": true,
+                "itemCode": "apple-small-1"
+            },
+            {
+                "id": "apple-large-1",
+                "groupId": "collection-123",
+                "name": "Red Apples",
+                "attribute": "Large Size",
+                "purchasingPrice": 2.50,
+                "sellingPrice": 2.99,
+                "comparePrice": 3.49,
+                "stockQuantity": 40,
+                "availability": true,
+                "units": "pieces",
+                "active": true,
+                "itemCode": "apple-large-1"
+            }
+        ]
+    }
+    ```
+
+#### 4. Get Inventory Stats
 
 -   **HTTP Verb:** GET
 -   **Route:** `/inventory/stats`
@@ -37,29 +89,106 @@ This document provides detailed information about the available API endpoints, i
 -   **Path Parameters:** None
 -   **Query Parameters:** None
 
-#### 4. Add Inventory Item
+#### 5. Add Inventory Item
 
 -   **HTTP Verb:** POST
 -   **Route:** `/inventory`
--   **Description:** Adds a new item to the inventory.
+-   **Description:** Adds a new item to the inventory with optional variants.
 -   **Path Parameters:** None
 -   **Query Parameters:** None
--   **Request Body:** JSON object representing the new inventory item.
+-   **Request Body:** JSON object representing the new inventory item with optional variants.
     ```json
     {
     	"name": "Red Apples",
     	"description": "Fresh red apples from local farms.",
-    	"category": "Fruit",
+    	"category": "Fresh Fruits",
+    	"subCategory": "Daily Fruits",
     	"units": "pieces",
+    	"availability": true,
     	"purchasingPrice": 1.99,
-    	"msp": 2.49,
+    	"sellingPrice": 2.49,
+    	"comparePrice": 2.99,
     	"stockQuantity": 100,
+    	"stockQuantityAlert": 10,
+    	"totalQuantityInB2c": 50,
+    	"minimumSellingWeight": 0.5,
+    	"maximumSellingWeight": 2.0,
+    	"buyerLimit": 5,
     	"expiry": "2024-12-31T00:00:00Z",
-    	"images": ["https://example.com/images/apple1.jpg"]
+    	"MinimumSellingWeightUnit": "kgs",
+    	"MaximumSellingWeightUnit": "kgs",
+    	"totalquantityB2cUnit": "pieces",
+    	"images": ["https://example.com/images/apple1.jpg"],
+    	"tags": ["organic", "fresh"],
+    	"variants": [
+    		{
+    			"attribute": "Small Size",
+    			"purchasingPrice": 1.50,
+    			"sellingPrice": 1.99,
+    			"comparePrice": 2.49,
+    			"buyerLimit": 3,
+    			"lowStockAlert": 5,
+    			"availability": true,
+    			"unit": "pieces",
+    			"minimumSellingWeight": 0.3,
+    			"maximumSellingWeight": 0.5,
+    			"MinimumSellingWeightUnit": "kgs",
+    			"MaximumSellingWeightUnit": "kgs",
+    			"totalQuantityInB2c": 30,
+    			"totalquantityB2cUnit": "pieces",
+    			"stockQuantity": 60,
+    			"overallStock": 100,
+    			"overallStockUnit": "pieces",
+    			"expiry": "2024-12-31T00:00:00Z",
+    			"images": ["https://example.com/images/apple-small1.jpg", "https://example.com/images/apple-small2.jpg"]
+    		},
+    		{
+    			"attribute": "Large Size",
+    			"purchasingPrice": 2.50,
+    			"sellingPrice": 2.99,
+    			"comparePrice": 3.49,
+    			"buyerLimit": 2,
+    			"lowStockAlert": 3,
+    			"availability": true,
+    			"unit": "pieces",
+    			"minimumSellingWeight": 0.8,
+    			"maximumSellingWeight": 1.2,
+    			"MinimumSellingWeightUnit": "kgs",
+    			"MaximumSellingWeightUnit": "kgs",
+    			"totalQuantityInB2c": 20,
+    			"totalquantityB2cUnit": "pieces",
+    			"stockQuantity": 40,
+    			"overallStock": 80,
+    			"overallStockUnit": "pieces",
+    			"expiry": "2024-12-31T00:00:00Z",
+    			"images": ["https://example.com/images/apple-large1.jpg", "https://example.com/images/apple-large2.jpg"]
+    		}
+    	]
     }
     ```
 
-#### 5. Update Inventory Item Status
+**Variant Schema Fields:**
+- `attribute` (string, required): Variant attribute (e.g., "Small Size", "Large Size")
+- `purchasingPrice` (number, required): Purchase price for the variant
+- `sellingPrice` (number, required): Selling price for the variant
+- `comparePrice` (number, required): Compare price for the variant
+- `buyerLimit` (number, required): Maximum quantity a buyer can purchase
+- `lowStockAlert` (number, required): Stock level that triggers low stock alert
+- `availability` (boolean, required): Whether the variant is available
+- `unit` (string, required): Unit of measurement for the variant
+- `minimumSellingWeight` (number, optional): Minimum weight for selling
+- `maximumSellingWeight` (number, optional): Maximum weight for selling
+- `MinimumSellingWeightUnit` (string, optional): Unit for minimum selling weight
+- `MaximumSellingWeightUnit` (string, optional): Unit for maximum selling weight
+- `totalQuantityInB2c` (number, optional): Total quantity available for B2C
+- `totalquantityB2cUnit` (string, optional): Unit for B2C quantity
+- `stockQuantity` (number, required): Current stock quantity
+- `overallStock` (number, optional): Overall stock quantity for the variant
+- `overallStockUnit` (string, optional): Unit for overall stock (e.g., "pieces", "grams", "kgs", "litres")
+- `expiry` (string, optional): Expiry date for the variant
+- `images` (array of URLs, required): Up to 5 image URLs for the variant
+
+#### 6. Update Inventory Item Status
 
 -   **HTTP Verb:** PUT
 -   **Route:** `/inventory/status`
@@ -80,7 +209,7 @@ This document provides detailed information about the available API endpoints, i
     ]
     ```
 
-#### 6. Update Inventory Item/Product
+#### 7. Update Inventory Item/Product
 
 -   **HTTP Verb:** PUT
 -   **Route:** `/inventory/{id}`
@@ -99,12 +228,12 @@ This document provides detailed information about the available API endpoints, i
     }
     ```
 
-#### 6. Update Inventory Item Price
+#### 8. Update Inventory Item Price
 
 -   **HTTP Verb:** PUT
 -   **Route:** `/inventory/price`
--   **Description:** Updates the price of a specific inventory item.
--   **Path Parameters:**
+-   **Description:** Updates the price of multiple inventory items in bulk.
+-   **Path Parameters:** None
 -   **Query Parameters:** None
 -   **Request Body:**
     ```json
@@ -122,15 +251,70 @@ This document provides detailed information about the available API endpoints, i
     ]
     ```
 
+### Variant Management
+
+#### Overview
+Variants allow you to create multiple versions of the same product with different attributes, pricing, and stock levels. Each variant can have its own:
+- Pricing (purchase, selling, compare prices)
+- Stock quantities and limits
+- Weight constraints
+- Expiry dates
+- Images (up to 5 per variant)
+
+#### Key Features
+- **Optional Fields**: `overallStock`, `overallStockUnit`, and `expiry` are optional for variants
+- **Required Images**: Each variant must have at least one image (up to 5)
+- **Fallback Logic**: Variants can inherit images and expiry from parent items if not specified
+- **S3 Integration**: Variant images use the same S3 upload process as parent items
+
+#### Image Upload Process for Variants
+1. **Get Presigned URL**: Call `GET /uploadUrl?fileName=image.jpg`
+2. **Upload to S3**: Use the returned presigned URL to upload the image
+3. **Use S3 URL**: Include the final S3 URL in the variant's `images` array
+
+#### Example Variant Creation
+```json
+{
+    "attribute": "Small Size",
+    "purchasingPrice": 1.50,
+    "sellingPrice": 1.99,
+    "comparePrice": 2.49,
+    "buyerLimit": 3,
+    "lowStockAlert": 5,
+    "availability": true,
+    "unit": "pieces",
+    "stockQuantity": 60,
+    "overallStock": 100,
+    "overallStockUnit": "pieces",
+    "expiry": "2024-12-31T00:00:00Z",
+    "images": ["https://s3.amazonaws.com/bucket/productsImages/abc123-small.jpg"]
+}
+```
+
+#### Note on Variant Updates
+Currently, variant updates are handled through the main inventory update endpoint `PUT /inventory/{id}`. The `update-item-variation.js` file exists but is not connected to any route. For updating variant-specific information, use the main inventory update endpoint.
+
 ### Media Endpoints
 
 #### 1. Get Pre-Signed S3 URL
 
 -   **HTTP Verb:** GET
 -   **Route:** `/uploadUrl`
--   **Description:** Retrieves a pre-signed URL for uploading media to S3.
+-   **Description:** Retrieves a pre-signed URL for uploading media to S3. Used for both parent items and variant images.
 -   **Path Parameters:** None
--   **Query Parameters:** None
+-   **Query Parameters:** 
+    - `fileName` (string, required): Name of the file to upload
+-   **Response:**
+    ```json
+    {
+        "uploadUrl": "https://presigned-s3-url-for-upload"
+    }
+    ```
+-   **Usage:** 
+    - Call this endpoint to get a presigned URL for uploading images
+    - Upload the image directly to S3 using the returned URL
+    - Use the final S3 URL in the `images` array for parent items or variants
+    - Supports up to 5 images per variant
 
 ### Order Endpoints
 
@@ -148,7 +332,15 @@ This document provides detailed information about the available API endpoints, i
 -   **Route:** `/order-inventory`
 -   **Description:** Retrieves all orders.
 -   **Path Parameters:** None
--   **Query Parameters:** - `search` (optional): A search term to filter inventory items by name. - `type` (string): filter for orders by type cash or online - `pageKey` (string): The key of the page for pagination
+-   **Query Parameters:** 
+    - `search` (optional): A search term to filter inventory items by name
+    - `type` (string): filter for orders by type cash or online
+    - `status` (string): filter for orders by status
+    - `date` (string): filter for orders by date range ("7", "14", "1m", "2m", "older", "today", "yesterday")
+    - `shift` (string): filter for orders by delivery shift
+    - `pincode` (string): filter for orders by delivery pincode
+    - `paymentStatus` (string): filter for orders by payment status ("PENDING", "PAID")
+    - `pageKey` (string): The key of the page for pagination
 
 #### 1. Orders-filter
 
@@ -323,10 +515,10 @@ Creates a new runsheet for a rider.
 
 ```json
 {
-	"riderId": "123e4567-e89b-12d3-a456-426614174000",
+	"riderId": "a1b2c3d4",
 	"orders": [
-		"123e4567-e89b-12d3-a456-426614174001",
-		"123e4567-e89b-12d3-a456-426614174002"
+		"401-3385984-2549139",
+		"401-6484620-3193625"
 	]
 }
 ```
@@ -370,11 +562,11 @@ Retrieves a list of runsheets. Supports pagination through the `pageKey` query p
 [
 	{
 		"id": "abc123",
-		"riderId": "123e4567-e89b-12d3-a456-426614174000",
+		"riderId": "a1b2c3d4",
 		"status": "pending",
 		"orders": [
-			"123e4567-e89b-12d3-a456-426614174001",
-			"123e4567-e89b-12d3-a456-426614174002"
+			"401-3385984-2549139",
+			"401-6484620-3193625"
 		],
 		"name": "John Doe"
 	}
@@ -403,7 +595,7 @@ Fetches a specific runsheet by its ID.
     json
     ```
 
-    `{ "id": "abc123", "riderId": "123e4567-e89b-12d3-a456-426614174000", "status": "pending", "orders": [ "123e4567-e89b-12d3-a456-426614174001", "123e4567-e89b-12d3-a456-426614174002" ] }`
+    `{ "id": "abc123", "riderId": "a1b2c3d4e5f6", "status": "pending", "orders": [ "401-3385984-2549139", "401-6484620-3193625" ] }`
 
 -   **Status 400:**
 
@@ -454,7 +646,7 @@ closes a specific runsheet by its ID.
         ```
 
         `{
-        "riderId": "b452a1fe-694d-430b-ae06-5c5ec5c7cece",
+        "riderId": "a1b2c3d4e5f6",
         "orders": [
             "401-3385984-2549139",
             "401-6484620-3193625",
@@ -996,3 +1188,54 @@ Copy code
 Copy code
 
 `{ "message": "Internal server error" }`
+
+---
+
+## Get Rider Summary
+
+**GET** `/rider/summary`
+
+**Description**: Retrieves a summary for all riders, including open runsheets, OFD (Out For Delivery) orders, deliveries, and conversion ratio.
+
+**Response**:
+
+- **200 OK**: Returns an object containing the count of riders and a list of summary objects for each rider.
+
+**Example Response**:
+
+```json
+{
+  "count": 2,
+  "items": [
+    {
+      "riderId": "c90503c64e6f",
+      "name": "Umesh",
+      "email": "Umesh1215@gmail.com",
+      "number": "+91 1234567890",
+      "openRunsheets": 1,
+      "ofdOrders": 45,
+      "deliveries": "09/45",
+      "conversionRatio": "95%"
+    },
+    {
+      "riderId": "a1b2c3d4e5f6",
+      "name": "Suraj",
+      "email": "Umesh1215@gmail.com",
+      "number": "+91 1234567890",
+      "openRunsheets": 1,
+      "ofdOrders": 12,
+      "deliveries": "10/12",
+      "conversionRatio": "95%"
+    }
+  ]
+}
+```
+
+- `riderId`: The unique identifier of the rider.
+- `name`: Rider's name.
+- `email`: Rider's email address.
+- `number`: Rider's phone number.
+- `openRunsheets`: Number of open runsheets assigned to the rider.
+- `ofdOrders`: Number of orders currently out for delivery for the rider.
+- `deliveries`: Number of delivered orders out of total OFD orders (format: delivered/OFD).
+- `conversionRatio`: Percentage of delivered orders out of OFD orders.

@@ -130,7 +130,7 @@ export const runsheetList = async (nextKey) => {
 				const rider = await findById(usersTable, item.riderId);
 				const riderDetails = {};
 				if (rider) {
-					riderDetails.id = item.riderId;
+					riderDetails.id = item.riderId; // Use full riderId
 					riderDetails.name = rider.personalDetails.fullName;
 					riderDetails.number = rider.number;
 				}
@@ -172,7 +172,7 @@ export const getRunsheet = async (id) => {
 	const orders = bacthRes.Responses[orderTable];
 	const rider = bacthRes.Responses[usersTable];
 	const riderDetails = {
-		id: runsheet.riderId,
+		id: runsheet.riderId, // Use full riderId
 		name: rider[0].personalDetails.fullName,
 	};
 	runsheet.orders = orders;
@@ -250,7 +250,7 @@ export const runsheetSearch = async (query) => {
 			arr.map(async (item) => {
 				const rider = await findById(usersTable, item.riderId);
 				const riderDetails = {
-					id: item.riderId,
+					id: item.riderId, // Use full riderId
 					name: rider.personalDetails.fullName,
 					number: rider.number,
 				};
@@ -266,7 +266,7 @@ export const runsheetSearch = async (query) => {
 		idData.Items.map(async (item) => {
 			const rider = await findById(usersTable, item.riderId);
 			const riderDetails = {
-				id: item.riderId,
+				id: item.riderId, // Use full riderId
 				name: rider.personalDetails.fullName,
 				number: rider.number,
 			};
@@ -394,7 +394,7 @@ const commonRunsheetFunc = async (item) => {
 	});
 	const rider = await findById(usersTable, item.riderId);
 	const riderDetails = {
-		id: item.riderId,
+		id: item.riderId, // Use full riderId
 		name: rider?.personalDetails?.fullName || "",
 		number: rider?.number || "",
 	};

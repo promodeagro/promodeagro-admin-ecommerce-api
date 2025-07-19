@@ -5,11 +5,12 @@ import { listOrdersInventory } from ".";
 import { z } from "zod";
 import { queryParamsValidator } from "../util/queryParamsValidator";
 
-// const typeQuerySchema = z
-// 	.object({
-// 		type: z.enum(["cash", "online"]),
-// 	})
-// 	.optional();
+const querySchema = z
+	.object({
+		type: z.enum(["COD", "Prepaid"]).optional(),
+		paymentStatus: z.enum(["PAID", "PENDING"]).optional(),
+	})
+	.optional();
 
 export const handler = middy(async (event) => {
 	let nextKey = event.queryStringParameters?.pageKey || undefined;
@@ -18,8 +19,18 @@ export const handler = middy(async (event) => {
 	let status = event.queryStringParameters?.status || undefined;
 	let shift = event.queryStringParameters?.shift || undefined;
 	let pincode = event.queryStringParameters?.pincode || undefined;
+	let paymentStatus = event.queryStringParameters?.paymentStatus || undefined;
+	if (paymentStatus && !["PAID", "PENDING"].includes(paymentStatus)) {
+		return {
+			statusCode: 400,
+			body: JSON.stringify({ message: "Invalid paymentStatus. Only 'PAID' or 'PENDING' allowed." }),
+		};
+	}
 	let search = event.queryStringParameters?.search || undefined;
 	let data = {};
+
+	// Removed type mapping here
+
 	if (search) {
 		data.items = await checkQuery(search);
 	} else {
@@ -29,6 +40,7 @@ export const handler = middy(async (event) => {
 			status,
 			shift,
 			pincode,
+			paymentStatus,
 			nextKey
 		);
 
@@ -65,5 +77,5 @@ export const handler = middy(async (event) => {
 		}),
 	};
 })
-	// .use(queryParamsValidator(typeQuerySchema))
+	.use(queryParamsValidator(querySchema))
 	.use(errorHandler());

@@ -73,12 +73,18 @@ export async function list(nextKey) {
   // Map product items to the expected format
   const products = data.Items.map((item) => ({
     ...item,
-    units: item.unit || null,
+    units: item.units || item.unit || null,
     active: item.availability || false,
     itemCode: item.id, // Assuming the `id` is equivalent to the item code
+    attribute: item.attribute || null, // Include attribute name
     productId: undefined,
     unit: undefined,
     availability: undefined,
+    image: item.image || (item.images && item.images[0]) || null,
+    images: item.images || [],
+    overallStock: item.overallStock || null,
+    overallStockUnit: item.overallStockUnit || null,
+    expiry: item.expiry || null,
   }));
 
   return {
@@ -127,6 +133,29 @@ export const updateItemPricing = async (item) => {
 	}
 };
 
+export const updateProductTableStockAndPrice = async (item) => {
+	const params = {
+		TableName: Table.productsTable.tableName,
+		Key: { id: item.itemCode },
+		UpdateExpression:
+			"SET msp = :msp, purchasingPrice = :pp, stockQuantity = stockQuantity + :aq",
+		ExpressionAttributeValues: {
+			":msp": item.newOnlineStorePrice,
+			":pp": item.newPurchasingPrice,
+			":aq": item.adjustQuantity,
+		},
+		ReturnValues: "ALL_NEW",
+	};
+	try {
+		const command = new UpdateCommand(params);
+		const response = await docClient.send(command);
+		return response.Attributes;
+	} catch (error) {
+		console.error("Unable to update product. Error:", error);
+		throw error;
+	}
+};
+
 export async function get(id) {
 	const params = {
 		TableName: productsTable,
@@ -142,10 +171,16 @@ export async function get(id) {
 	// delete inventory.id;
 	return {
 		...product,
+		units: product.units || product.unit || null,
+		active: product.availability || false,
+		itemCode: product.id,
+		attribute: product.attribute || null, // Include attribute name
+		image: product.image || (product.images && product.images[0]) || null,
+		images: product.images || [],
+		overallStock: product.overallStock || null,
+		overallStockUnit: product.overallStockUnit || null,
+		expiry: product.expiry || null,
 		// ...inventory,
-		// units: product.unit,
-		// active: product.availability,
-		// itemCode: itemCode,
 		// productId: undefined,
 		// unit: undefined,
 		// availability: undefined,
@@ -173,10 +208,11 @@ export const searchByName = async (query) => {
 			// delete inventoryData.id;
 			return {
 				...item,
+				units: item.units || item.unit || null,
+				active: item.availability || false,
+				itemCode: item.id,
+				attribute: item.attribute || null, // Include attribute name
 				// ...inventoryData,
-				// units: item.unit,
-				// active: item.availability,
-				// itemCode: itemCode,
 				// productId: undefined,
 				// unit: undefined,
 				// availability: undefined,
@@ -211,6 +247,7 @@ export const searchByItemCode = async (query) => {
 				units: productData.unit,
 				active: productData.availability,
 				itemCode: item.id,
+				attribute: productData.attribute || null, // Include attribute name
 				productId: undefined,
 				unit: undefined,
 				availability: undefined,
@@ -268,9 +305,7 @@ export const inventoryByCategory = async (
 		params.FilterExpression += "#availability = :availability";
 	}
 	params.ExclusiveStartKey = nextKey
-		? {
-				id: { S: nextKey },
-		  }
+		? { id: nextKey }
 		: undefined;
 	const command = new ScanCommand(params);
 	const data = await docClient.send(command);
@@ -290,10 +325,11 @@ async function productInventoryData(data) {
 			// delete inventoryData.id;
 			return {
 				...item,
+				units: item.units || item.unit || null,
+				active: item.availability || false,
+				itemCode: item.id,
+				attribute: item.attribute || null, // Include attribute name
 				// ...inventoryData,
-				// units: item.unit,
-				// active: item.availability,
-				// itemCode: itemCode,
 				// productId: undefined,
 				// unit: undefined,
 				// availability: undefined,
@@ -321,73 +357,58 @@ export const updateItem = async (id, item) => {
 	const images = item.images || [];
 	const mainImage = images.length > 0 ? images[0] : null;
   
+	// Build dynamic update expression and values
+	const updateExpressions = [];
+	const expressionAttributeNames = {};
+	const expressionAttributeValues = {};
+  
+	// Helper function to add field to update
+	const addField = (fieldName, value, dynamoName = fieldName) => {
+		if (value !== undefined && value !== null) {
+			updateExpressions.push(`#${dynamoName} = :${dynamoName}`);
+			expressionAttributeNames[`#${dynamoName}`] = fieldName;
+			expressionAttributeValues[`:${dynamoName}`] = value;
+		}
+	};
+  
+	// Add fields that should always be updated
+	addField("name", item.name, "nm");
+	addField("search_name", item.name ? item.name.toLowerCase() : undefined, "snm");
+	addField("description", item.description, "desc");
+	addField("category", item.category, "cat");
+	addField("subCategory", item.subCategory, "subcat");
+	addField("units", item.units, "unt");
+	addField("tags", item.tags ? item.tags.map(tag => tag.toLowerCase()) : undefined, "tags");
+	addField("expiry", item.expiry, "exp");
+	addField("updatedAt", now, "upd");
+	addField("availability", item.availability, "avail");
+	addField("totalQuantityInB2c", item.totalQuantityInB2C, "totalB2c");
+	addField("totalquantityB2cUnit", item.totalquantityB2cUnit, "totalB2cUnit");
+	addField("stockQuantity", item.stockQuantity, "stockQty");
+	addField("stockQuantityAlert", item.stockQuantityAlert, "stockQtyAlert");
+	addField("purchasingPrice", item.purchasingPrice, "pPrice");
+	addField("sellingPrice", item.sellingPrice, "sPrice");
+	addField("comparePrice", item.comparePrice, "cPrice");
+	addField("overallStock", item.overallStock, "overallStock");
+	addField("overallStockUnit", item.overallStockUnit, "overallStockUnit");
+	addField("attribute", item.attribute, "attr");
+	addField("image", mainImage, "img");
+	addField("images", images, "imgs");
+  
+	// Ensure we have at least one field to update
+	if (updateExpressions.length === 0) {
+		throw new Error("No valid fields to update");
+	}
+  
 	const transactParams = {
 	  TransactItems: [
 		{
 		  Update: {
 			TableName: productsTable,
 			Key: { id: id },
-			UpdateExpression:
-			  "SET #nm = :name, #snm = :search_name, #desc = :description, #cat = :category, " +
-			  "#subcat = :subCategory, #unt = :units, #tags = :tags, #exp = :expiry, #upd = :updatedAt, " +
-			  "#avail = :availability, #minSellWt = :minimumSellingWeight, #maxSellWt = :maximumSellingWeight, " +
-			  "#maxSellWtUnit = :MaximumSellingWeightUnit, #minSellWtUnit = :MinimumSellingWeightUnit, " +
-			  "#totalB2c = :totalQuantityInB2c, #totalB2cUnit = :totalquantityB2cUnit, " +
-			  "#stockQty = :stockQuantity, #buyerLimit = :buyerLimit, #stockQtyAlert = :stockQuantityAlert, " +
-			  "#pPrice = :purchasingPrice, #sPrice = :sellingPrice, #cPrice = :comparePrice, " +
-			  "#img = :image, #imgs = :images",
-			ExpressionAttributeNames: {
-			  "#nm": "name",
-			  "#snm": "search_name",
-			  "#desc": "description",
-			  "#cat": "category",
-			  "#subcat": "subCategory",
-			  "#unt": "units",
-			  "#tags": "tags",
-			  "#exp": "expiry",
-			  "#upd": "updatedAt",
-			  "#avail": "availability",
-			  "#minSellWt": "minimumSellingWeight",
-			  "#maxSellWt": "maximumSellingWeight",
-			  "#maxSellWtUnit": "MaximumSellingWeightUnit",
-			  "#minSellWtUnit": "MinimumSellingWeightUnit",
-			  "#totalB2c": "totalQuantityInB2c",
-			  "#totalB2cUnit": "totalquantityB2cUnit",
-			  "#stockQty": "stockQuantity",
-			  "#buyerLimit": "buyerLimit",
-			  "#stockQtyAlert": "stockQuantityAlert",
-			  "#pPrice": "purchasingPrice",
-			  "#sPrice": "sellingPrice",
-			  "#cPrice": "comparePrice",
-			  "#img": "image",
-			  "#imgs": "images",
-			},
-			ExpressionAttributeValues: {
-			  ":name": item.name,
-			  ":search_name": item.name.toLowerCase(),
-			  ":description": item.description,
-			  ":category": item.category,
-			  ":subCategory": item.subCategory,
-			  ":units": item.units,
-			  ":tags": item.tags ? item.tags.map(tag => tag.toLowerCase()) : [],
-			  ":expiry": item.expiry || null,
-			  ":updatedAt": now,
-			  ":availability": item.availability,
-			  ":minimumSellingWeight": item.minimumSellingWeight,
-			  ":maximumSellingWeight": item.maximumSellingWeight,
-			  ":MaximumSellingWeightUnit": item.maximumSellingWeightUnit,
-			  ":MinimumSellingWeightUnit": item.minimumSellingWeightUnit,
-			  ":totalQuantityInB2c": item.totalQuantityInB2C,
-			  ":totalquantityB2cUnit": item.totalquantityB2cUnit,
-			  ":stockQuantity": item.stockQuantity,
-			  ":buyerLimit": item.buyerLimit,
-			  ":stockQuantityAlert": item.stockQuantityAlert,
-			  ":purchasingPrice": item.purchasingPrice,
-			  ":sellingPrice": item.sellingPrice,
-			  ":comparePrice": item.comparePrice,
-			  ":image": mainImage,
-			  ":images": images,
-			},
+			UpdateExpression: `SET ${updateExpressions.join(", ")}`,
+			ExpressionAttributeNames: expressionAttributeNames,
+			ExpressionAttributeValues: expressionAttributeValues,
 			ReturnValues: "ALL_NEW",
 		  },
 		},
@@ -442,6 +463,60 @@ export const updateItemStatus = async (req) => {
 	};
 };
 
+export async function getByGroupId(groupId) {
+	const params = {
+		TableName: productsTable,
+		FilterExpression: "#groupId = :groupId",
+		ExpressionAttributeNames: {
+			"#groupId": "groupId",
+		},
+		ExpressionAttributeValues: {
+			":groupId": groupId,
+		},
+	};
+
+	const command = new ScanCommand(params);
+	const data = await docClient.send(command);
+
+	if (!data.Items || data.Items.length === 0) {
+		return null;
+	}
+
+	// Map products to the expected format
+	const products = data.Items.map((item) => ({
+		...item,
+		units: item.units || item.unit || null,
+		active: item.availability || false,
+		itemCode: item.id,
+		attribute: item.attribute || null, // Include attribute name
+		productId: undefined,
+		unit: undefined,
+		availability: undefined,
+		image: item.image || (item.images && item.images[0]) || null,
+		images: item.images || [],
+		overallStock: item.overallStock || null,
+		overallStockUnit: item.overallStockUnit || null,
+		expiry: item.expiry || null,
+	}));
+
+	// Group products by groupId (should be the same for all items)
+	const groupedProduct = {
+		groupId: groupId,
+		name: products[0].name,
+		category: products[0].category,
+		subCategory: products[0].subCategory,
+		description: products[0].description,
+		image: products[0].image,
+		images: products[0].images || [],
+		tags: products[0].tags || [],
+		overallStock: products[0].overallStock || null,
+		overallStockUnit: products[0].overallStockUnit || null,
+		variations: products
+	};
+
+	return groupedProduct;
+}
+
 // export const updateProductStatus = async (req) => {
 // 	const params = {
 // 		RequestItems: {
@@ -469,3 +544,7 @@ export const updateItemStatus = async (req) => {
 // 			};
 // 		});
 // };
+
+export { handler as addVariantHandler } from "./add-variant";
+export { handler as deleteGroupHandler } from "./delete-group";
+export { handler as updateGroupHandler } from "./update-group";

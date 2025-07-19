@@ -13,7 +13,7 @@ import {
 } from ".";
 
 const runsheetSchema = z.object({
-	riderId: z.string().uuid(),
+	riderId: z.string(),
 	orders: z.array(z.string()),
 });
 
