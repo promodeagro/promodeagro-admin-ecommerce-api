@@ -11,6 +11,7 @@ export const handler = middy(async (event) => {
         const category = event.queryStringParameters?.category || undefined;
         const subCategory = event.queryStringParameters?.subCategory || undefined;
         const active = event.queryStringParameters?.active || undefined;
+        const expiry = event.queryStringParameters?.expiry || undefined;
 
         let allItems = [];
         let lastEvaluatedKey = undefined;
@@ -40,8 +41,8 @@ export const handler = middy(async (event) => {
                 // For search, break after first fetch (searchByName/ItemCode returns all matches)
                 allItems = data.items || [];
                 break;
-            } else if (category || active) {
-                data = await inventoryByCategory(lastEvaluatedKey, category, subCategory, active);
+            } else if (category || active || expiry) {
+                data = await inventoryByCategory(lastEvaluatedKey, category, subCategory, active, expiry);
             } else {
                 data = await list(lastEvaluatedKey);
             }

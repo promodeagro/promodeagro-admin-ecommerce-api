@@ -86,9 +86,9 @@ async function excelToJson(fileBuffer) {
         const purchasingPrice = parseFloat(row["purchasingPrice"]) || 0.0;
         const sellingPrice = parseFloat(row["sellingPrice"]) || 0.0;
         const comparePrice = parseFloat(row["comparePrice"]) || 0.0;
-        const stockQuantity = parseInt(row["stockQuantity"]) || 0;
-        const stockAlert = parseInt(row["stockQuantityAlert"]) || 0;
-        const totalQuantityB2C = parseInt(row["totalQuantityInB2c"]) || 0;
+        const stockQuantity = parseFloat(row["stockQuantity"]) || 0;
+        const stockAlert = parseFloat(row["stockQuantityAlert"]) || 0;
+        const totalQuantityB2C = parseFloat(row["totalQuantityInB2c"]) || 0;
         const overallStock = parseFloat(row["overallStock"]) || 0;
         const overallStockUnit = row["overallStockUnit"]?.toString().trim() || "unit";
 

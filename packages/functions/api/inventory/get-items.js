@@ -8,6 +8,7 @@ export const handler = middy(async (event) => {
 	let category = event.queryStringParameters?.category || undefined;
 	let subCategory = event.queryStringParameters?.subCategory || undefined;
 	let active = event.queryStringParameters?.active || undefined;
+	let expiry = event.queryStringParameters?.expiry || undefined;
 	let data = {};
 	if (search) {
 		const itemCodeRegex = /^[a-fA-F0-9]+$/;
@@ -16,8 +17,8 @@ export const handler = middy(async (event) => {
 		} else {
 			data = await searchByName(search);
 		}
-	} else if (category || active) {
-		data = await inventoryByCategory(nextKey, category,subCategory, active);
+	} else if (category || active || expiry) {
+		data = await inventoryByCategory(nextKey, category, subCategory, active, expiry);
 	} else {
 		data = await list(nextKey);
 	}

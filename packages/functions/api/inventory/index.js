@@ -12,6 +12,7 @@ import {
 } from "@aws-sdk/lib-dynamodb";
 import { Table } from "sst/node/table";
 import { findById } from "../../common/data";
+import { updateSharedStockAcrossVariants } from "./unitUtils";
 
 const client = new DynamoDBClient({ region: "ap-south-1" });
 const docClient = DynamoDBDocumentClient.from(client);
@@ -111,21 +112,58 @@ async function inventoryByProdId(productId) {
 }
 
 export const updateItemPricing = async (item) => {
+	// First, fetch the current item data to determine which field to update
+	const getParams = {
+		TableName: Table.inventoryTable.tableName,
+		Key: { id: item.itemCode },
+	};
+	
+	let currentItem;
+	try {
+		const { Item } = await docClient.send(new GetCommand(getParams));
+		currentItem = Item;
+	} catch (error) {
+		console.error("Unable to fetch current item data. Error:", error);
+		throw error;
+	}
+
+	// Determine which field to update: stockQuantity or overallStock
+	// Check if the item has stockQuantity with a valid value (not null, undefined, empty, or 0)
+	const hasValidStockQuantity = currentItem && 
+		currentItem.stockQuantity !== null && 
+		currentItem.stockQuantity !== undefined && 
+		currentItem.stockQuantity !== "" && 
+		currentItem.stockQuantity !== 0;
+	const updateField = hasValidStockQuantity ? 'stockQuantity' : 'overallStock';
+	
 	const params = {
 		TableName: Table.inventoryTable.tableName,
 		Key: { id: item.itemCode },
 		UpdateExpression:
-			"SET msp = :msp, purchasingPrice = :pp, stockQuantity = stockQuantity + :aq",
+			updateField === 'stockQuantity'
+				? "SET msp = :msp, purchasingPrice = :pp, stockQuantity = stockQuantity + :aq"
+				: "SET msp = :msp, purchasingPrice = :pp, overallStock = if_not_exists(overallStock, :zero) + :aq",
 		ExpressionAttributeValues: {
 			":msp": item.newOnlineStorePrice,
 			":pp": item.newPurchasingPrice,
 			":aq": item.adjustQuantity,
+			...(updateField === 'overallStock' && { ":zero": 0 }),
 		},
 		ReturnValues: "ALL_NEW",
 	};
 	try {
 		const command = new UpdateCommand(params);
 		const response = await docClient.send(command);
+
+		// If updating overallStock, also update all variants in the group
+		if (updateField === 'overallStock') {
+			// Use the fetched product data to get groupId
+			if (currentItem && currentItem.groupId) {
+				const operation = item.adjustQuantity >= 0 ? 'add' : 'subtract';
+				await updateSharedStockAcrossVariants(currentItem.groupId, Math.abs(item.adjustQuantity), operation, docClient, Table.inventoryTable.tableName, item.itemCode);
+			}
+		}
+
 		return response.Attributes;
 	} catch (error) {
 		console.error("Unable to update item. Error:", error);
@@ -134,21 +172,58 @@ export const updateItemPricing = async (item) => {
 };
 
 export const updateProductTableStockAndPrice = async (item) => {
+	// First, fetch the current item data to determine which field to update
+	const getParams = {
+		TableName: Table.productsTable.tableName,
+		Key: { id: item.itemCode },
+	};
+	
+	let currentItem;
+	try {
+		const { Item } = await docClient.send(new GetCommand(getParams));
+		currentItem = Item;
+	} catch (error) {
+		console.error("Unable to fetch current product data. Error:", error);
+		throw error;
+	}
+
+	// Determine which field to update: stockQuantity or overallStock
+	// Check if the item has stockQuantity with a valid value (not null, undefined, empty, or 0)
+	const hasValidStockQuantity = currentItem && 
+		currentItem.stockQuantity !== null && 
+		currentItem.stockQuantity !== undefined && 
+		currentItem.stockQuantity !== "" && 
+		currentItem.stockQuantity !== 0;
+	const updateField = hasValidStockQuantity ? 'stockQuantity' : 'overallStock';
+	
 	const params = {
 		TableName: Table.productsTable.tableName,
 		Key: { id: item.itemCode },
 		UpdateExpression:
-			"SET msp = :msp, purchasingPrice = :pp, stockQuantity = stockQuantity + :aq",
+			updateField === 'stockQuantity'
+				? "SET msp = :msp, purchasingPrice = :pp, stockQuantity = stockQuantity + :aq"
+				: "SET msp = :msp, purchasingPrice = :pp, overallStock = if_not_exists(overallStock, :zero) + :aq",
 		ExpressionAttributeValues: {
 			":msp": item.newOnlineStorePrice,
 			":pp": item.newPurchasingPrice,
 			":aq": item.adjustQuantity,
+			...(updateField === 'overallStock' && { ":zero": 0 }),
 		},
 		ReturnValues: "ALL_NEW",
 	};
 	try {
 		const command = new UpdateCommand(params);
 		const response = await docClient.send(command);
+
+		// If updating overallStock, also update all variants in the group
+		if (updateField === 'overallStock') {
+			// Use the fetched product data to get groupId
+			if (currentItem && currentItem.groupId) {
+				const operation = item.adjustQuantity >= 0 ? 'add' : 'subtract';
+				await updateSharedStockAcrossVariants(currentItem.groupId, Math.abs(item.adjustQuantity), operation, docClient, Table.productsTable.tableName, item.itemCode);
+			}
+		}
+
 		return response.Attributes;
 	} catch (error) {
 		console.error("Unable to update product. Error:", error);
@@ -265,7 +340,8 @@ export const inventoryByCategory = async (
 	nextKey,
 	category,
 	subCategory,
-	active
+	active,
+	expiry
 ) => {
 	const params = {
 		TableName: productsTable,
@@ -290,6 +366,17 @@ export const inventoryByCategory = async (
 		addCondition("#subCategory = :subCategory");
 	}
 
+	if (category) {
+		params.ExpressionAttributeNames["#category"] = "category";
+		params.ExpressionAttributeValues[":category"] = category;
+		addCondition("#category = :category");
+	}
+	if (subCategory) {
+		params.ExpressionAttributeNames["#subCategory"] = "subCategory";
+		params.ExpressionAttributeValues[":subCategory"] = subCategory;
+		addCondition("#subCategory = :subCategory");
+	}
+
 	if (active) {
 		let status;
 		if (active.toLowerCase() === "false") {
@@ -299,10 +386,15 @@ export const inventoryByCategory = async (
 		}
 		params.ExpressionAttributeNames["#availability"] = "availability";
 		params.ExpressionAttributeValues[":availability"] = status;
-		if (category) {
-			params.FilterExpression += " AND ";
-		}
-		params.FilterExpression += "#availability = :availability";
+		addCondition("#availability = :availability");
+	}
+
+	if (expiry) {
+		// Since expiry is stored as string in DB (e.g., "2025-07-24"), 
+		// we compare it directly as a string
+		params.ExpressionAttributeNames["#expiry"] = "expiry";
+		params.ExpressionAttributeValues[":expiry"] = expiry;
+		addCondition("#expiry = :expiry");
 	}
 	params.ExclusiveStartKey = nextKey
 		? { id: nextKey }
@@ -463,7 +555,178 @@ export const updateItemStatus = async (req) => {
 	};
 };
 
-export async function getByGroupId(groupId) {
+/**
+ * Helper function to get sales data for variants from order history
+ * @param {Array<string>} variantIds - Array of variant product IDs
+ * @param {string} dateFilter - Date filter: "today", "yesterday", "14d", "1m", "2m", "older"
+ * @returns {Object} - Sales data object with metrics for each variant
+ */
+async function getSalesDataForVariants(variantIds, dateFilter) {
+	try {
+		// Calculate date range based on filter
+		let startDate, endDate;
+		const now = new Date();
+		
+		switch (dateFilter) {
+			case "today":
+				startDate = new Date(now);
+				startDate.setHours(0, 0, 0, 0);
+				endDate = new Date(now);
+				endDate.setHours(23, 59, 59, 999);
+				break;
+			case "yesterday":
+				startDate = new Date(now);
+				startDate.setDate(startDate.getDate() - 1);
+				startDate.setHours(0, 0, 0, 0);
+				endDate = new Date(startDate);
+				endDate.setHours(23, 59, 59, 999);
+				break;
+			case "14d":
+				startDate = new Date(now);
+				startDate.setDate(startDate.getDate() - 14);
+				startDate.setHours(0, 0, 0, 0);
+				break;
+			case "1m":
+				startDate = new Date(now);
+				startDate.setMonth(startDate.getMonth() - 1);
+				startDate.setHours(0, 0, 0, 0);
+				break;
+			case "2m":
+				startDate = new Date(now);
+				startDate.setMonth(startDate.getMonth() - 2);
+				startDate.setHours(0, 0, 0, 0);
+				break;
+			case "older":
+				startDate = new Date(now);
+				startDate.setMonth(startDate.getMonth() - 3);
+				startDate.setHours(0, 0, 0, 0);
+				break;
+			default:
+				// No filter - get all data
+				startDate = null;
+				endDate = null;
+		}
+
+		const params = {
+			TableName: Table.OrdersTable.tableName,
+			FilterExpression: "attribute_exists(items)",
+		};
+
+		// Add date filter if specified
+		if (startDate) {
+			if (endDate) {
+				// For today/yesterday with specific end date
+				params.FilterExpression += " AND createdAt BETWEEN :startDate AND :endDate";
+				params.ExpressionAttributeValues = {
+					":startDate": startDate.toISOString(),
+					":endDate": endDate.toISOString()
+				};
+			} else {
+				// For other periods with only start date
+				params.FilterExpression += " AND createdAt >= :startDate";
+				params.ExpressionAttributeValues = {
+					":startDate": startDate.toISOString()
+				};
+			}
+		}
+
+		const command = new ScanCommand(params);
+		const data = await docClient.send(command);
+
+		// Initialize sales data for each variant
+		const salesData = {};
+		variantIds.forEach(id => {
+			salesData[String(id)] = {
+				totalSold: 0,        // Total units sold
+				totalQuantity: 0,    // Same as totalSold (for consistency)
+				orderCount: 0,       // Number of orders containing this variant
+				totalRevenue: 0,     // Total revenue from this variant
+				averageOrderValue: 0 // Average revenue per order
+			};
+		});
+
+		// Process each order to count sales
+		if (data.Items && Array.isArray(data.Items)) {
+			data.Items.forEach(order => {
+				if (order.items && Array.isArray(order.items)) {
+					// Track which variants are in this order to avoid double-counting orderCount
+					const variantsInThisOrder = new Set();
+					
+					order.items.forEach(item => {
+						const itemProductId = String(item.productId);
+						if (itemProductId && salesData[itemProductId]) {
+							const quantity = parseFloat(item.quantity) || 0;
+							const price = parseFloat(item.price) || 0;
+							const revenue = quantity * price;
+							
+							salesData[itemProductId].totalSold += quantity;      // Count actual units sold
+							salesData[itemProductId].totalQuantity += quantity;  // Same as totalSold
+							salesData[itemProductId].totalRevenue += revenue;
+							variantsInThisOrder.add(itemProductId);              // Track variant in this order
+						}
+					});
+					
+					// Increment orderCount only once per variant per order
+					variantsInThisOrder.forEach(variantId => {
+						salesData[variantId].orderCount += 1;
+					});
+				}
+			});
+		}
+
+		// Calculate average order value for each variant
+		Object.keys(salesData).forEach(id => {
+			if (salesData[id].orderCount > 0) {
+				salesData[id].averageOrderValue = salesData[id].totalRevenue / salesData[id].orderCount;
+			}
+		});
+
+		return salesData;
+	} catch (error) {
+		console.error("Error fetching sales data:", error);
+		// Return empty sales data if there's an error
+		const emptySalesData = {};
+		variantIds.forEach(id => {
+			emptySalesData[String(id)] = {
+				totalSold: 0,        // Total units sold
+				totalQuantity: 0,    // Same as totalSold (for consistency)
+				orderCount: 0,       // Number of orders containing this variant
+				totalRevenue: 0,     // Total revenue from this variant
+				averageOrderValue: 0 // Average revenue per order
+			};
+		});
+		return emptySalesData;
+	}
+}
+
+/**
+ * Get product group by groupId with enhanced sales information
+ * @param {string} groupId - The group ID to fetch
+ * @param {string} dateFilter - Optional date filter: "today", "yesterday", "14d", "1m", "2m", "older"
+ * @returns {Object|null} - Product group with sales data for each variant
+ * 
+ * Returns:
+ * - Basic product group information (name, category, description, etc.)
+ * - Array of variations with individual sales metrics
+ * - Group-level sales statistics including best/least selling variants
+ * - Sales metrics per variant:
+ *   * totalSold: Total units sold (e.g., 5 biscuit packets = 5)
+ *   * totalQuantity: Same as totalSold (for consistency)
+ *   * orderCount: Number of orders containing this variant (e.g., 1 order with 5 packets = 1)
+ *   * totalRevenue: Total revenue from this variant
+ *   * averageOrderValue: Average revenue per order containing this variant
+ * 
+ * Date Filter Options:
+ * - "today": Sales from today only
+ * - "yesterday": Sales from yesterday only
+ * - "14d": Sales from last 14 days
+ * - "1m": Sales from last 1 month
+ * - "2m": Sales from last 2 months
+ * - "older": Sales from last 3 months
+ * - undefined/null: All time sales data
+ */
+export async function getByGroupId(groupId, dateFilter) {
+	try {
 	const params = {
 		TableName: productsTable,
 		FilterExpression: "#groupId = :groupId",
@@ -482,7 +745,13 @@ export async function getByGroupId(groupId) {
 		return null;
 	}
 
-	// Map products to the expected format
+		// Get variant IDs for sales data lookup
+		const variantIds = data.Items.map(item => item.id);
+
+		// Get sales data for all variants with date filter
+		const salesData = await getSalesDataForVariants(variantIds, dateFilter);
+
+	// Map products to the expected format with sales data
 	const products = data.Items.map((item) => ({
 		...item,
 		units: item.units || item.unit || null,
@@ -497,7 +766,63 @@ export async function getByGroupId(groupId) {
 		overallStock: item.overallStock || null,
 		overallStockUnit: item.overallStockUnit || null,
 		expiry: item.expiry || null,
+		// Add sales information
+		salesInfo: {
+			totalSold: salesData[String(item.id)]?.totalSold || 0,
+			totalQuantity: salesData[String(item.id)]?.totalQuantity || 0,
+			orderCount: salesData[String(item.id)]?.orderCount || 0,
+			totalRevenue: salesData[String(item.id)]?.totalRevenue || 0,
+			averageOrderValue: salesData[String(item.id)]?.averageOrderValue || 0
+		}
 	}));
+
+	// Calculate group-level sales statistics
+	const groupSalesStats = {
+		totalVariantsSold: 0,
+		totalGroupQuantity: 0,
+		totalGroupRevenue: 0,
+		totalGroupOrders: 0,
+		bestSellingVariant: null,
+		leastSellingVariant: null
+	};
+
+	// Aggregate sales data across all variants
+	products.forEach(product => {
+		const sales = product.salesInfo;
+		if (sales.totalSold > 0) {
+			groupSalesStats.totalVariantsSold += 1;
+		}
+		groupSalesStats.totalGroupQuantity += sales.totalQuantity;
+		groupSalesStats.totalGroupRevenue += sales.totalRevenue;
+		groupSalesStats.totalGroupOrders += sales.orderCount;
+	});
+
+	// Find best and least selling variants
+	let maxSold = 0;
+	let minSold = Infinity;
+	products.forEach(product => {
+		const sold = product.salesInfo.totalSold;
+		if (sold > maxSold) {
+			maxSold = sold;
+			groupSalesStats.bestSellingVariant = {
+				id: product.id,
+				name: product.name,
+				attribute: product.attribute,
+				totalSold: sold,
+				totalRevenue: product.salesInfo.totalRevenue
+			};
+		}
+		if (sold > 0 && sold < minSold) {
+			minSold = sold;
+			groupSalesStats.leastSellingVariant = {
+				id: product.id,
+				name: product.name,
+				attribute: product.attribute,
+				totalSold: sold,
+				totalRevenue: product.salesInfo.totalRevenue
+			};
+		}
+	});
 
 	// Group products by groupId (should be the same for all items)
 	const groupedProduct = {
@@ -511,10 +836,16 @@ export async function getByGroupId(groupId) {
 		tags: products[0].tags || [],
 		overallStock: products[0].overallStock || null,
 		overallStockUnit: products[0].overallStockUnit || null,
-		variations: products
+		variations: products,
+		groupSalesStats: groupSalesStats,
+		dateFilter: dateFilter || "all-time" // Include the applied date filter in response
 	};
 
 	return groupedProduct;
+	} catch (error) {
+		console.error("Error in getByGroupId:", error);
+		throw error;
+	}
 }
 
 // export const updateProductStatus = async (req) => {

@@ -51,7 +51,12 @@ const unitMap = {
   "packet": "Pkt",
   "Packet": "Pkt",
   "packets": "Pkt",
-  "Packets": "Pkt"
+  "Packets": "Pkt",
+  
+  // For Combo
+  "combo": "Combo",
+  "Combo": "Combo",
+  "COMBO": "Combo"
 };
 
 /**
@@ -70,7 +75,10 @@ const unitConversionFactors = {
   "Pcs": 1,
   
   // Package conversions (Pkt as base)
-  "Pkt": 1
+  "Pkt": 1,
+  
+  // Combo conversions (Combo as base)
+  "Combo": 1
 };
 
 /**
@@ -218,7 +226,7 @@ export function standardizeVariantUnits(variants) {
  * @returns {Array} - Array of valid unit values
  */
 export function getValidUnits() {
-  return ["Pcs", "Gms", "Kg", "Ltr", "Pkt"];
+  return ["Pcs", "Gms", "Kg", "Ltr", "Pkt", "Combo"];
 }
 
 /**
@@ -294,14 +302,15 @@ export function validateStockAvailability(product, requiredQuantity) {
 } 
 
 /**
- * Updates shared stock across all variants in a group
+ * Updates shared stock across all variants in a group (excluding the current variant)
  * @param {string} groupId - The group ID
  * @param {number} quantity - The quantity to update
  * @param {string} operation - 'add' or 'subtract'
  * @param {Object} docClient - DynamoDBDocumentClient instance
  * @param {string} tableName - Table name (products or inventory)
+ * @param {string} excludeVariantId - The variant ID to exclude from shared update
  */
-export async function updateSharedStockAcrossVariants(groupId, quantity, operation, docClient, tableName) {
+export async function updateSharedStockAcrossVariants(groupId, quantity, operation, docClient, tableName, excludeVariantId = null) {
   // Scan for all variants in the group
   const scanParams = {
     TableName: tableName,
@@ -310,8 +319,12 @@ export async function updateSharedStockAcrossVariants(groupId, quantity, operati
   };
   const { Items: variants } = await docClient.send(new (require("@aws-sdk/lib-dynamodb").ScanCommand)(scanParams));
   const op = operation === 'add' ? '+' : '-';
-  // Update overallStock for all variants
+  // Update overallStock for all variants except the excluded one
   const updatePromises = (variants || []).map(variant => {
+    // Skip the variant that was already updated
+    if (excludeVariantId && variant.id === excludeVariantId) {
+      return Promise.resolve();
+    }
     if (variant.overallStock !== undefined && variant.overallStock !== null) {
       const updateParams = {
         TableName: tableName,

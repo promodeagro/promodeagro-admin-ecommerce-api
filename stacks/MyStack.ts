@@ -362,6 +362,8 @@ export function API({ app, stack }: StackContext) {
 			"PUT /inventory/price": "packages/functions/api/inventory/update-item-price.handler",
 			"POST /inventory/adjust": "packages/functions/api/inventory/inventory-mod.add",
 			"GET /inventory/adjust": "packages/functions/api/inventory/inventory-mod.list",
+			"GET /inventory/adjust/{id}": "packages/functions/api/inventory/inventory-mod.getById",
+			"PUT /inventory/adjust/{id}": "packages/functions/api/inventory/inventory-mod.updateById",
 			"GET /inventory/exportProducts": "packages/functions/api/inventory/export-items.handler",
 			"DELETE /inventory/{id}": "packages/functions/api/inventory/delete-item.handler",
 			"PUT /inventory/{id}": "packages/functions/api/inventory/update-item.handler",
@@ -397,6 +399,7 @@ export function API({ app, stack }: StackContext) {
 			},
 				
 			"PUT /order/{id}/reattempt": "packages/functions/api/order/reattempt-order.handler",
+			
 																								
 
 
